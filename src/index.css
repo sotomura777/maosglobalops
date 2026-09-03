@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+/* Identidade PROVISÓRIA da plataforma (a afinar com o Pedro):
+   escuro profundo azulado + acento elétrico — distinto do vinho Mãos/rosa Btrust */
+:root {
+  --bg: #0B0E14; --card: #11151E; --border: #1B2130; --border-mid: #273043;
+  --text: #EDF0F7; --text-2: #B9C0CF; --text-3: #8A93A6; --text-4: #626B7E;
+  --accent: #4CC9F0; --accent-deep: #1D5C79; --green: #06D6A0; --danger: #E63946;
+  --radius: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'DM Sans', system-ui, sans-serif; font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+input { background: var(--card); border: 1px solid var(--border-mid); border-radius: var(--radius); color: var(--text); font: inherit; padding: 12px 14px; width: 100%; outline: none; }
+input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(76,201,240,0.15); }
+input::placeholder { color: var(--text-4); }
+button { cursor: pointer; font: inherit; transition: all .15s ease; }
+button:active { transform: scale(.98); }
