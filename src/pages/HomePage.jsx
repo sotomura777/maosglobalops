@@ -33,6 +33,10 @@ export default function HomePage() {
           <div style={{ fontWeight: 700, marginBottom: 4 }}>O meu perfil →</div>
           <div style={{ fontSize: 13, color: 'var(--text-3)' }}>Skills, experiência, disponibilidade e visibilidade.</div>
         </button>
+        <button onClick={() => navigate('/app/canais')} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 20, textAlign: 'left', color: 'var(--text)' }}>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>Canais →</div>
+          <div style={{ fontSize: 13, color: 'var(--text-3)' }}>A comunidade — por tema, região e empresa.</div>
+        </button>
         <button onClick={() => navigate('/app/diretorio')} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 20, textAlign: 'left', color: 'var(--text)' }}>
           <div style={{ fontWeight: 700, marginBottom: 4 }}>Diretório →</div>
           <div style={{ fontSize: 13, color: 'var(--text-3)' }}>Quem está na rede — por categoria e distrito.</div>

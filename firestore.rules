@@ -20,6 +20,30 @@ service cloud.firestore {
           .hasAny(['kind', 'email', 'createdAt', 'gdprConsent']);
     }
 
+    // Canais (tipo Discord): temas fixos t-* (todos publicam) e canais de
+    // empresa c-{uid} (só a própria publica; todos leem).
+    match /channels/{channelId} {
+      allow read: if isSignedIn();
+      // criação idempotente: tema com id t-*; empresa só o SEU c-{uid}
+      allow create, update: if isSignedIn() && (
+        (request.resource.data.type == 'topic' && channelId.matches('t-.*')) ||
+        (request.resource.data.type == 'company' && channelId == 'c-' + request.auth.uid &&
+         request.resource.data.companyId == request.auth.uid)
+      );
+
+      match /posts/{postId} {
+        allow read: if isSignedIn();
+        allow create: if isSignedIn() &&
+          request.resource.data.authorId == request.auth.uid &&
+          request.resource.data.text is string && request.resource.data.text.size() <= 2000 &&
+          (
+            get(/databases/$(database)/documents/channels/$(channelId)).data.type == 'topic' ||
+            get(/databases/$(database)/documents/channels/$(channelId)).data.companyId == request.auth.uid
+          );
+        allow delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
+      }
+    }
+
     // Trabalhos: empresas publicam; toda a gente autenticada vê os abertos.
     // `featured` só o dono pode ter (slot pago no futuro — por agora ninguém
     // consegue destacar-se: criado sempre a false, update não pode tocar-lhe).

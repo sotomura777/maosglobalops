@@ -10,6 +10,7 @@ import DirectoryPage from './pages/DirectoryPage';
 import RegisterCompanyPage from './pages/RegisterCompanyPage';
 import JobsPage from './pages/JobsPage';
 import MyJobsPage from './pages/MyJobsPage';
+import ChannelsPage from './pages/ChannelsPage';
 
 const AuthCtx = createContext({ user: null, profile: null, loading: true });
 export const useAuth = () => useContext(AuthCtx);
@@ -39,6 +40,7 @@ export default function App() {
           <Route path="/app/diretorio" element={state.loading ? null : state.user ? <DirectoryPage /> : <Navigate to="/entrar" replace />} />
           <Route path="/app/trabalhos" element={state.loading ? null : state.user ? <JobsPage /> : <Navigate to="/entrar" replace />} />
           <Route path="/app/meus-trabalhos" element={state.loading ? null : state.user ? <MyJobsPage /> : <Navigate to="/entrar" replace />} />
+          <Route path="/app/canais" element={state.loading ? null : state.user ? <ChannelsPage /> : <Navigate to="/entrar" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
