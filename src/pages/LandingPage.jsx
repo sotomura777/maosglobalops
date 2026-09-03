@@ -21,7 +21,10 @@ export default function LandingPage() {
           <Link to="/registar" style={{ display: 'inline-block', background: 'var(--accent)', color: '#08222E', fontWeight: 700, textDecoration: 'none', padding: '14px 26px', borderRadius: 'var(--radius)', fontSize: 16 }}>
             Criar o meu perfil — grátis
           </Link>
-          <p style={{ color: 'var(--text-4)', fontSize: 12, marginTop: 26 }}>Plataforma em construção — pela equipa da MAOS.</p>
+          <p style={{ color: 'var(--text-2)', fontSize: 14, marginTop: 18 }}>
+            És uma empresa? <Link to="/registar-empresa" style={{ color: 'var(--accent)' }}>Regista-te e encontra staff →</Link>
+          </p>
+          <p style={{ color: 'var(--text-4)', fontSize: 12, marginTop: 20 }}>Plataforma em construção — pela equipa da MAOS.</p>
         </div>
       </main>
     </div>

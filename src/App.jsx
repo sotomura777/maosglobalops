@@ -7,6 +7,9 @@ import RegisterPage from './pages/RegisterPage';
 import HomePage from './pages/HomePage';
 import ProfilePage from './pages/ProfilePage';
 import DirectoryPage from './pages/DirectoryPage';
+import RegisterCompanyPage from './pages/RegisterCompanyPage';
+import JobsPage from './pages/JobsPage';
+import MyJobsPage from './pages/MyJobsPage';
 
 const AuthCtx = createContext({ user: null, profile: null, loading: true });
 export const useAuth = () => useContext(AuthCtx);
@@ -30,9 +33,12 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/entrar" element={<LoginPage />} />
           <Route path="/registar" element={<RegisterPage />} />
+          <Route path="/registar-empresa" element={<RegisterCompanyPage />} />
           <Route path="/app" element={state.loading ? null : state.user ? <HomePage /> : <Navigate to="/entrar" replace />} />
           <Route path="/app/perfil" element={state.loading ? null : state.user ? <ProfilePage key={state.user.uid} /> : <Navigate to="/entrar" replace />} />
           <Route path="/app/diretorio" element={state.loading ? null : state.user ? <DirectoryPage /> : <Navigate to="/entrar" replace />} />
+          <Route path="/app/trabalhos" element={state.loading ? null : state.user ? <JobsPage /> : <Navigate to="/entrar" replace />} />
+          <Route path="/app/meus-trabalhos" element={state.loading ? null : state.user ? <MyJobsPage /> : <Navigate to="/entrar" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>

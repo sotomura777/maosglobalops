@@ -17,6 +17,18 @@ export default function HomePage() {
         O teu perfil está criado. A seguir chegam: experiência e currículo, disponibilidade, trabalhos e rankings.
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 22 }}>
+        {profile?.kind === 'company' && (
+          <button onClick={() => navigate('/app/meus-trabalhos')} style={{ background: 'var(--card)', border: '1px solid var(--accent)', borderRadius: 'var(--radius)', padding: 20, textAlign: 'left', color: 'var(--text)' }}>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>Os meus trabalhos →</div>
+            <div style={{ fontSize: 13, color: 'var(--text-3)' }}>Publicar trabalhos e ver candidaturas.</div>
+          </button>
+        )}
+        {profile?.kind === 'worker' && (
+          <button onClick={() => navigate('/app/trabalhos')} style={{ background: 'var(--card)', border: '1px solid var(--accent)', borderRadius: 'var(--radius)', padding: 20, textAlign: 'left', color: 'var(--text)' }}>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>Trabalhos →</div>
+            <div style={{ fontSize: 13, color: 'var(--text-3)' }}>Vê o que está aberto e candidata-te.</div>
+          </button>
+        )}
         <button onClick={() => navigate('/app/perfil')} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 20, textAlign: 'left', color: 'var(--text)' }}>
           <div style={{ fontWeight: 700, marginBottom: 4 }}>O meu perfil →</div>
           <div style={{ fontSize: 13, color: 'var(--text-3)' }}>Skills, experiência, disponibilidade e visibilidade.</div>

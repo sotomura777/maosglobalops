@@ -3,18 +3,44 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function isSignedIn() { return request.auth != null; }
     function isSelf(uid) { return isSignedIn() && request.auth.uid == uid; }
+    function myKind() {
+      return get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.get('kind', '');
+    }
 
-    // Perfis: o dono cria/edita o seu; o diretório só mostra quem escolheu
-    // ser público (public == true). Campos de identidade/kind não se alteram.
+    // Perfis (trabalhadores e empresas): o dono cria/edita o seu; o diretório
+    // mostra só quem escolheu ser público. Identidade imutável.
     match /profiles/{uid} {
       allow read: if isSelf(uid) || (isSignedIn() && resource.data.get('public', false) == true);
       allow create: if isSelf(uid) &&
-        request.resource.data.get('kind', '') in ['worker'] &&
+        request.resource.data.get('kind', '') in ['worker', 'company'] &&
         request.resource.data.keys().hasOnly(['kind', 'name', 'email', 'createdAt', 'gdprConsent']) &&
         request.resource.data.gdprConsent == true;
       allow update: if isSelf(uid) &&
         !request.resource.data.diff(resource.data).affectedKeys()
           .hasAny(['kind', 'email', 'createdAt', 'gdprConsent']);
+    }
+
+    // Trabalhos: empresas publicam; toda a gente autenticada vê os abertos.
+    // `featured` só o dono pode ter (slot pago no futuro — por agora ninguém
+    // consegue destacar-se: criado sempre a false, update não pode tocar-lhe).
+    match /jobs/{jobId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && myKind() == 'company' &&
+        request.resource.data.companyId == request.auth.uid &&
+        request.resource.data.featured == false &&
+        request.resource.data.status == 'open';
+      allow update: if isSignedIn() && resource.data.companyId == request.auth.uid &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['companyId', 'featured']);
+      allow delete: if isSignedIn() && resource.data.companyId == request.auth.uid;
+
+      // Candidaturas: o trabalhador cria a SUA (doc id = uid); lê a sua;
+      // a empresa dona do trabalho lê todas.
+      match /applications/{workerUid} {
+        allow create: if isSelf(workerUid) && myKind() == 'worker';
+        allow read: if isSelf(workerUid) ||
+          (isSignedIn() && get(/databases/$(database)/documents/jobs/$(jobId)).data.companyId == request.auth.uid);
+        allow delete: if isSelf(workerUid);
+      }
     }
   }
 }
