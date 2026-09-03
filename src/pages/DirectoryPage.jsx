@@ -1,9 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { listPublicProfiles } from '../services/profileService';
+import { createValidation } from '../services/workService';
+import { useAuth } from '../App';
 import { CATEGORIES, DISTRICTS, AVAILABILITY } from '../constants';
 
 export default function DirectoryPage() {
+  const { user, profile } = useAuth();
+  const [validating, setValidating] = useState(null); // worker em validação
+  const [vForm, setVForm] = useState({ role: '', period: '', hours: '' });
   const [all, setAll] = useState(null);
   const [q, setQ] = useState('');
   const [cat, setCat] = useState('');
@@ -50,10 +55,42 @@ export default function DirectoryPage() {
                   <span>{p.district || '—'}</span>
                   <span style={{ color: aClr }}>● {aLbl}</span>
                 </div>
+                {profile?.kind === 'company' && p.kind === 'worker' && (
+                  <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                    {p.phone && <a href={`tel:${p.phone}`} style={{ flex: 1, textAlign: 'center', border: '1px solid var(--border-mid)', borderRadius: 'var(--radius)', color: 'var(--text-2)', padding: '7px 0', fontSize: 12, textDecoration: 'none' }}>Ligar</a>}
+                    <button onClick={() => { setValidating(p); setVForm({ role: '', period: '', hours: '' }); }}
+                      style={{ flex: 1, background: 'transparent', border: '1px solid var(--green)', color: 'var(--green)', borderRadius: 'var(--radius)', padding: '7px 0', fontSize: 12, fontWeight: 700 }}>✓ Validar trabalho</button>
+                  </div>
+                )}
               </div>
             );
           })}
         </div>}
+
+      {validating && (
+        <div onClick={e => e.target === e.currentTarget && setValidating(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, zIndex: 100 }}>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--border-mid)', borderRadius: 'var(--radius)', padding: 20, width: '100%', maxWidth: 420 }}>
+            <div style={{ fontWeight: 800, marginBottom: 4 }}>Validar trabalho — {validating.name}</div>
+            <p style={{ fontSize: 12, color: 'var(--text-3)', margin: '0 0 12px' }}>A validação fica pública no perfil e conta para o ranking. Só valida trabalho que aconteceu mesmo.</p>
+            <div style={{ display: 'grid', gap: 8 }}>
+              <input autoFocus value={vForm.role} onChange={e => setVForm({ ...vForm, role: e.target.value })} placeholder="Função (ex: Barman)" />
+              <input value={vForm.period} onChange={e => setVForm({ ...vForm, period: e.target.value })} placeholder="Quando (ex: Verão 2026)" />
+              <input value={vForm.hours} onChange={e => setVForm({ ...vForm, hours: e.target.value })} placeholder="Horas totais (ex: 40)" inputMode="numeric" />
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 14 }}>
+              <button onClick={() => setValidating(null)} style={{ background: 'none', border: '1px solid var(--border-mid)', color: 'var(--text-2)', borderRadius: 'var(--radius)', padding: '10px 16px' }}>Cancelar</button>
+              <button onClick={async () => {
+                if (!vForm.role.trim()) return alert('Indica a função.');
+                try {
+                  await createValidation({ workerId: validating.id, workerName: validating.name, companyId: user.uid, companyName: profile?.name || '—', role: vForm.role.trim(), period: vForm.period.trim() || null, hours: Number(vForm.hours) || 0 });
+                  setValidating(null);
+                } catch { alert('Erro ao validar.'); }
+              }} style={{ background: 'var(--green)', color: '#04120A', fontWeight: 700, border: 'none', borderRadius: 'var(--radius)', padding: '10px 18px' }}>Confirmar validação</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

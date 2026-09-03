@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../App';
 import { updateProfile } from '../services/profileService';
+import { useEffect } from 'react';
+import { listValidationsFor } from '../services/workService';
 import { CATEGORIES, DISTRICTS, AVAILABILITY, PREFS } from '../constants';
 
 const S = {
@@ -21,6 +23,8 @@ export default function ProfilePage() {
   const [exp, setExp] = useState({ company: '', role: '', period: '', note: '' });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [validations, setValidations] = useState([]);
+  useEffect(() => { listValidationsFor(user.uid).then(setValidations).catch(() => {}); }, [user.uid]);
 
   const toggle = (k, v) => setP(prev => ({ ...prev, [k]: prev[k].includes(v) ? prev[k].filter(x => x !== v) : [...prev[k], v] }));
 
@@ -106,6 +110,19 @@ export default function ProfilePage() {
         </div>
         <button onClick={addExp} style={{ ...S.chip(true), marginTop: 10 }}>+ Adicionar experiência</button>
       </div>
+
+      {validations.length > 0 && (
+        <div style={S.card}>
+          <span style={S.lbl}>Validações de empresas · {validations.length}</span>
+          {validations.map(v => (
+            <div key={v.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: 14 }}>
+              <span style={{ color: 'var(--green)', fontWeight: 700 }}>✓</span> <b>{v.role}</b>
+              <span style={{ color: 'var(--text-2)' }}> — validado por {v.companyName}</span>
+              <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{v.period ? ` · ${v.period}` : ''}{v.hours ? ` · ${v.hours}h` : ''}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div style={S.card}>
         <span style={S.lbl}>Visibilidade e contacto</span>

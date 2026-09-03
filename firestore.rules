@@ -18,6 +18,22 @@ service cloud.firestore {
       allow update: if isSelf(uid) &&
         !request.resource.data.diff(resource.data).affectedKeys()
           .hasAny(['kind', 'email', 'createdAt', 'gdprConsent']);
+
+      // Contador de horas/ganhos — estritamente privado do dono
+      match /worklog/{entryId} {
+        allow read, write: if isSelf(uid);
+      }
+    }
+
+    // Validações de trabalho por empresas — públicas dentro da app (alimentam
+    // o ranking e o perfil). Só empresas criam, sobre si próprias; imutáveis.
+    match /validations/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && myKind() == 'company' &&
+        request.resource.data.companyId == request.auth.uid &&
+        request.resource.data.workerId is string &&
+        request.resource.data.role is string;
+      allow delete: if isSignedIn() && resource.data.companyId == request.auth.uid;
     }
 
     // Canais (tipo Discord): temas fixos t-* (todos publicam) e canais de

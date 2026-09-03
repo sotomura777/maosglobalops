@@ -24,6 +24,16 @@ export default function HomePage() {
           </button>
         )}
         {profile?.kind === 'worker' && (
+          <button onClick={() => navigate('/app/ganhos')} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 20, textAlign: 'left', color: 'var(--text)' }}>
+            <div style={{ fontWeight: 700, marginBottom: 4 }}>Horas e ganhos →</div>
+            <div style={{ fontSize: 13, color: 'var(--text-3)' }}>O teu contador privado de horas e €/hora.</div>
+          </button>
+        )}
+        <button onClick={() => navigate('/app/ranking')} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 20, textAlign: 'left', color: 'var(--text)' }}>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>Ranking nacional →</div>
+          <div style={{ fontSize: 13, color: 'var(--text-3)' }}>Só conta trabalho validado por empresas.</div>
+        </button>
+        {profile?.kind === 'worker' && (
           <button onClick={() => navigate('/app/trabalhos')} style={{ background: 'var(--card)', border: '1px solid var(--accent)', borderRadius: 'var(--radius)', padding: 20, textAlign: 'left', color: 'var(--text)' }}>
             <div style={{ fontWeight: 700, marginBottom: 4 }}>Trabalhos →</div>
             <div style={{ fontSize: 13, color: 'var(--text-3)' }}>Vê o que está aberto e candidata-te.</div>
