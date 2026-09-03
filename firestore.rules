@@ -4,14 +4,17 @@ service cloud.firestore {
     function isSignedIn() { return request.auth != null; }
     function isSelf(uid) { return isSignedIn() && request.auth.uid == uid; }
 
-    // Perfis: cada pessoa cria e edita o SEU; leitura pública virá com o
-    // diretório (F1) — por agora só o próprio lê (privacidade por defeito).
+    // Perfis: o dono cria/edita o seu; o diretório só mostra quem escolheu
+    // ser público (public == true). Campos de identidade/kind não se alteram.
     match /profiles/{uid} {
-      allow read, update: if isSelf(uid);
+      allow read: if isSelf(uid) || (isSignedIn() && resource.data.get('public', false) == true);
       allow create: if isSelf(uid) &&
         request.resource.data.get('kind', '') in ['worker'] &&
         request.resource.data.keys().hasOnly(['kind', 'name', 'email', 'createdAt', 'gdprConsent']) &&
         request.resource.data.gdprConsent == true;
+      allow update: if isSelf(uid) &&
+        !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['kind', 'email', 'createdAt', 'gdprConsent']);
     }
   }
 }

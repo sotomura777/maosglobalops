@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../App';
 import { signIn } from '../services/authService';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  useEffect(() => { if (user) navigate('/app', { replace: true }); }, [user, navigate]);
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -14,7 +17,7 @@ export default function LoginPage() {
     setSaving(true);
     try {
       await signIn(form.email.trim(), form.password);
-      navigate('/app', { replace: true });
+      // redireção reativa via useEffect quando o contexto receber o user
     } catch {
       setError('Email ou password errados.');
     } finally { setSaving(false); }

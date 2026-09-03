@@ -16,8 +16,15 @@ export default function HomePage() {
       <p style={{ color: 'var(--text-2)', marginTop: 8 }}>
         O teu perfil está criado. A seguir chegam: experiência e currículo, disponibilidade, trabalhos e rankings.
       </p>
-      <div style={{ marginTop: 22, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 18, color: 'var(--text-3)', fontSize: 14 }}>
-        Fase 1 em construção — perfil completo (skills, experiência, CV) e diretório.
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 22 }}>
+        <button onClick={() => navigate('/app/perfil')} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 20, textAlign: 'left', color: 'var(--text)' }}>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>O meu perfil →</div>
+          <div style={{ fontSize: 13, color: 'var(--text-3)' }}>Skills, experiência, disponibilidade e visibilidade.</div>
+        </button>
+        <button onClick={() => navigate('/app/diretorio')} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 20, textAlign: 'left', color: 'var(--text)' }}>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>Diretório →</div>
+          <div style={{ fontSize: 13, color: 'var(--text-3)' }}>Quem está na rede — por categoria e distrito.</div>
+        </button>
       </div>
     </div>
   );

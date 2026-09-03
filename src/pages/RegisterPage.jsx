@@ -1,9 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../App';
 import { signUpWorker } from '../services/authService';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  useEffect(() => { if (user) navigate('/app', { replace: true }); }, [user, navigate]);
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState('');
@@ -19,7 +22,7 @@ export default function RegisterPage() {
     setSaving(true);
     try {
       await signUpWorker(form.email.trim(), form.password, form.name.trim());
-      navigate('/app', { replace: true });
+      // redireção reativa via useEffect quando o contexto receber o user
     } catch (err) {
       setError(err?.code === 'auth/email-already-in-use' ? 'Já existe uma conta com este email.' : 'Não foi possível criar a conta. Tenta novamente.');
     } finally { setSaving(false); }
