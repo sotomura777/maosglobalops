@@ -49,7 +49,7 @@ export default function DirectoryPage() {
                 <div style={{ fontWeight: 700 }}>{p.name}</div>
                 <div style={{ fontSize: 13, color: 'var(--text-2)', margin: '3px 0 8px' }}>{p.headline || '—'}</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
-                  {(p.categories || []).slice(0, 4).map(c => <span key={c} style={{ fontSize: 11, color: 'var(--accent)', border: '1px solid rgba(76,201,240,0.3)', borderRadius: 99, padding: '2px 8px' }}>{c}</span>)}
+                  {(p.categories || []).slice(0, 4).map(c => <span key={c} style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-2)', background: 'rgba(255,255,255,.06)', borderRadius: 99, padding: '4px 10px' }}>{c}</span>)}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text-3)', display: 'flex', justifyContent: 'space-between' }}>
                   <span>{p.district || '—'}</span>

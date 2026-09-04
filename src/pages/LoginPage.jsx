@@ -27,15 +27,15 @@ export default function LoginPage() {
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <form onSubmit={submit} style={{ width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 14 }}>
         <h1 style={{ fontSize: 26, fontWeight: 800 }}>Entrar</h1>
-        {error && <div style={{ background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.35)', borderRadius: 'var(--radius)', color: 'var(--danger)', padding: '10px 14px', fontSize: 13 }}>{error}</div>}
+        {error && <div style={{ background: 'rgba(225,29,72,0.1)', border: '1px solid rgba(225,29,72,0.35)', borderRadius: 'var(--radius)', color: 'var(--danger)', padding: '10px 14px', fontSize: 13 }}>{error}</div>}
         <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, color: 'var(--text-3)' }}>Email
           <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} autoComplete="email" /></label>
         <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, color: 'var(--text-3)' }}>Password
           <input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} autoComplete="current-password" /></label>
-        <button type="submit" disabled={saving} style={{ background: 'var(--accent)', color: '#08222E', fontWeight: 700, border: 'none', borderRadius: 'var(--radius)', padding: '13px 18px', opacity: saving ? 0.6 : 1 }}>
+        <button type="submit" disabled={saving} style={{ background: 'var(--text)', color: '#0A0A0B', fontWeight: 700, border: 'none', borderRadius: 99, padding: '15px 18px', opacity: saving ? 0.6 : 1 }}>
           {saving ? 'A entrar…' : 'Entrar'}
         </button>
-        <p style={{ fontSize: 13, color: 'var(--text-3)', textAlign: 'center' }}>Ainda sem perfil? <Link to="/registar" style={{ color: 'var(--accent)' }}>Criar perfil</Link></p>
+        <p style={{ fontSize: 13, color: 'var(--text-3)', textAlign: 'center' }}>Ainda sem perfil? <Link to="/registar" style={{ color: 'var(--gold)' }}>Criar perfil</Link></p>
       </form>
     </div>
   );

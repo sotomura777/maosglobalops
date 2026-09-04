@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../App';
 import { TOPIC_CHANNELS, ensureTopicChannel, ensureCompanyChannel, listChannels, subscribePosts, sendPost } from '../services/channelsService';
+import { MONO, brandText } from '../ui';
 
 export default function ChannelsPage() {
   const { user, profile } = useAuth();
@@ -38,48 +39,52 @@ export default function ChannelsPage() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <header style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)' }}>
-        <Link to="/app" style={{ color: 'var(--text-2)', textDecoration: 'none' }}>← Início</Link>
+        <Link to="/app" style={{ color: 'var(--text-2)', textDecoration: 'none', fontSize: 13, fontWeight: 500 }}>← Início</Link>
       </header>
-      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '220px 1fr', minHeight: 0 }}>
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'minmax(150px, 220px) 1fr', minHeight: 0 }}>
         {/* lista de canais */}
-        <aside style={{ borderRight: '1px solid var(--border)', padding: 12, overflowY: 'auto' }}>
-          <div style={{ fontSize: 11, color: 'var(--text-4)', fontWeight: 700, letterSpacing: '0.06em', margin: '6px 0 8px' }}>CANAIS</div>
+        <aside style={{ borderRight: '1px solid var(--border)', padding: '14px 12px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <div style={{ font: "700 10px/1 'Public Sans', sans-serif", letterSpacing: '.1em', color: 'var(--text-4)', padding: '6px 10px 8px' }}>CANAIS</div>
           {channels.filter(c => c.type === 'topic').map(c => (
             <button key={c.id} onClick={() => setCurrent(c.id)}
-              style={{ display: 'block', width: '100%', textAlign: 'left', background: c.id === current ? 'var(--card)' : 'none', border: 'none', borderRadius: 6, color: c.id === current ? 'var(--text)' : 'var(--text-3)', padding: '8px 10px', fontSize: 14 }}>{c.name}</button>
+              style={{ display: 'block', width: '100%', textAlign: 'left', background: c.id === current ? 'var(--card)' : 'none', border: 'none', borderRadius: 8, padding: '9px 10px', font: `${c.id === current ? 600 : 400} 13px/1 'Public Sans', sans-serif`, color: c.id === current ? 'var(--text)' : 'var(--text-3)' }}>{c.name}</button>
           ))}
-          <div style={{ fontSize: 11, color: 'var(--text-4)', fontWeight: 700, letterSpacing: '0.06em', margin: '16px 0 8px' }}>EMPRESAS</div>
+          <div style={{ font: "700 10px/1 'Public Sans', sans-serif", letterSpacing: '.1em', color: 'var(--text-4)', padding: '18px 10px 8px' }}>EMPRESAS</div>
           {channels.filter(c => c.type === 'company').map(c => (
             <button key={c.id} onClick={() => setCurrent(c.id)}
-              style={{ display: 'block', width: '100%', textAlign: 'left', background: c.id === current ? 'var(--card)' : 'none', border: 'none', borderRadius: 6, color: c.id === current ? 'var(--accent)' : 'var(--text-3)', padding: '8px 10px', fontSize: 14 }}>▸ {c.name}</button>
+              style={{ display: 'block', width: '100%', textAlign: 'left', background: c.id === current ? 'var(--card)' : 'none', border: 'none', borderRadius: 8, padding: '9px 10px', font: `${c.id === current ? 600 : 400} 13px/1 'Public Sans', sans-serif`, color: c.brandColor ? brandText(c.brandColor) : 'var(--gold)' }}>▸ {c.name}</button>
           ))}
         </aside>
         {/* feed */}
         <main style={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border)', fontWeight: 700 }}>
-            {cur?.name || '…'}
-            {cur?.type === 'company' && <span style={{ fontSize: 12, color: 'var(--text-4)', fontWeight: 400, marginLeft: 8 }}>só a empresa publica</span>}
+          <div style={{ padding: '13px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{ font: "700 14px/1 'Public Sans', sans-serif" }}>{cur?.name || '…'}</span>
+            <span style={{ font: "400 11px/1 'Public Sans', sans-serif", color: 'var(--text-4)' }}>
+              {cur?.type === 'company' ? 'canal de anúncios · só a empresa publica' : 'canal de tema · toda a gente pode escrever'}
+            </span>
           </div>
-          <div style={{ flex: 1, overflowY: 'auto', padding: 18 }}>
-            {posts.length === 0 && <p style={{ color: 'var(--text-4)', fontSize: 14 }}>Sem mensagens ainda — sê a primeira pessoa a escrever.</p>}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 15 }}>
+            {posts.length === 0 && <p style={{ color: 'var(--text-5)', fontSize: 13 }}>Sem mensagens ainda — sê a primeira pessoa a escrever.</p>}
             {posts.map(p => (
-              <div key={p.id} style={{ marginBottom: 14 }}>
-                <span style={{ fontWeight: 700, fontSize: 14, color: p.authorKind === 'company' ? 'var(--accent)' : 'var(--text)' }}>{p.authorName}</span>
-                <span style={{ fontSize: 11, color: 'var(--text-4)', marginLeft: 8 }}>{p.createdAt ? new Date(p.createdAt).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}</span>
-                <div style={{ fontSize: 14, color: 'var(--text-2)', marginTop: 2, whiteSpace: 'pre-wrap' }}>{p.text}</div>
+              <div key={p.id}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
+                  <span style={{ font: "700 13px/1 'Public Sans', sans-serif", color: p.authorKind === 'company' ? 'var(--gold)' : 'var(--text)' }}>{p.authorName}</span>
+                  <span style={{ font: `400 10px/1 ${MONO}`, color: 'var(--text-4)' }}>{p.createdAt ? new Date(p.createdAt).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                </div>
+                <div style={{ font: "400 13px/1.55 'Public Sans', sans-serif", color: 'var(--text-2)', marginTop: 5, whiteSpace: 'pre-wrap' }}>{p.text}</div>
               </div>
             ))}
             <div ref={endRef} />
           </div>
           {canPost ? (
-            <div style={{ display: 'flex', gap: 8, padding: 14, borderTop: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', gap: 9, padding: '14px 20px', borderTop: '1px solid var(--border)' }}>
               <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()}
-                placeholder={`Mensagem para ${cur?.name || 'o canal'}…`} style={{ flex: 1 }} />
+                placeholder={`Mensagem para ${cur?.name || 'o canal'}…`} style={{ flex: 1, borderRadius: 12 }} />
               <button onClick={send} disabled={!text.trim()}
-                style={{ background: 'var(--accent)', color: '#08222E', fontWeight: 700, border: 'none', borderRadius: 'var(--radius)', padding: '0 20px', opacity: text.trim() ? 1 : 0.5 }}>Enviar</button>
+                style={{ font: "700 13px/1 'Public Sans', sans-serif", color: '#0A0A0B', background: 'var(--text)', border: 'none', borderRadius: 12, padding: '14px 22px', opacity: text.trim() ? 1 : 0.5 }}>Enviar</button>
             </div>
           ) : (
-            <div style={{ padding: 14, borderTop: '1px solid var(--border)', fontSize: 13, color: 'var(--text-4)' }}>
+            <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', fontSize: 13, color: 'var(--text-4)' }}>
               Canal de anúncios — só a empresa publica aqui.
             </div>
           )}

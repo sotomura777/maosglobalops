@@ -53,7 +53,7 @@ export default function EarningsPage() {
         ))}
         <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 14 }}>
           <div style={{ fontSize: 11, color: 'var(--text-4)' }}>Média €/h</div>
-          <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--accent)' }}>{eur(stats.avg)}</div>
+          <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--gold)' }}>{eur(stats.avg)}</div>
         </div>
       </div>
 
@@ -62,7 +62,7 @@ export default function EarningsPage() {
         <input value={form.hours} onChange={e => setForm({ ...form, hours: e.target.value })} placeholder="Horas" inputMode="decimal" />
         <input value={form.rate} onChange={e => setForm({ ...form, rate: e.target.value })} placeholder="€/h" inputMode="decimal" />
         <input value={form.company} onChange={e => setForm({ ...form, company: e.target.value })} placeholder="Empresa (opcional)" />
-        <button onClick={add} disabled={saving} style={{ background: 'var(--accent)', color: '#08222E', fontWeight: 700, border: 'none', borderRadius: 'var(--radius)', padding: '0 16px', opacity: saving ? 0.6 : 1 }}>+</button>
+        <button onClick={add} disabled={saving} style={{ background: 'var(--text)', color: '#0A0A0B', fontWeight: 700, border: 'none', borderRadius: 'var(--radius-sm)', padding: '0 16px', opacity: saving ? 0.6 : 1 }}>+</button>
       </div>
 
       {entries === null ? <p style={{ color: 'var(--text-3)' }}>A carregar…</p> :

@@ -1,17 +1,39 @@
 @import "tailwindcss";
 
-/* Identidade PROVISÓRIA da plataforma (a afinar com o Pedro):
-   escuro profundo azulado + acento elétrico — distinto do vinho Mãos/rosa Btrust */
+/* Identidade GlobalOps — hospedeiro neutro: quase-preto, cinzas frios, branco.
+   A única cor de marca num ecrã é a da empresa dona do trabalho.
+   O dourado é da plataforma e serve só para o que é conquistado. */
 :root {
-  --bg: #0B0E14; --card: #11151E; --border: #1B2130; --border-mid: #273043;
-  --text: #EDF0F7; --text-2: #B9C0CF; --text-3: #8A93A6; --text-4: #626B7E;
-  --accent: #4CC9F0; --accent-deep: #1D5C79; --green: #06D6A0; --danger: #E63946;
-  --radius: 8px;
+  /* superfícies */
+  --bg:         #0A0A0B;
+  --card:       #121315;
+  --card-2:     #141517;   /* modais e folhas */
+  --inset:      rgba(255,255,255,.045);  /* inputs, sub-blocos */
+  --border:     rgba(255,255,255,.07);
+  --border-mid: rgba(255,255,255,.13);
+
+  /* texto — cinzas frios, cada passo medido sobre --bg e --card */
+  --text:   #EEF1F2;
+  --text-2: #C9CFD3;
+  --text-3: #8A9299;
+  --text-4: #8E969D;   /* etiquetas */
+  --text-5: #7B838B;   /* placeholders, nota de rodapé */
+
+  /* plataforma */
+  --gold:      #F0C96A;
+  --gold-deep: #C89A2E;
+  --green:     #34D399;
+  --danger:    #E11D48;
+
+  --radius:    16px;
+  --radius-lg: 22px;
+  --radius-sm: 12px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: var(--bg); color: var(--text); font-family: 'DM Sans', system-ui, sans-serif; font-size: 15px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
-input { background: var(--card); border: 1px solid var(--border-mid); border-radius: var(--radius); color: var(--text); font: inherit; padding: 12px 14px; width: 100%; outline: none; }
-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(76,201,240,0.15); }
-input::placeholder { color: var(--text-4); }
+body { background: var(--bg); color: var(--text); font-family: 'Public Sans', system-ui, sans-serif; font-size: 14px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+input, textarea, select { background: var(--inset); border: 1px solid rgba(255,255,255,.09); border-radius: var(--radius-sm); color: var(--text); font: inherit; padding: 13px 14px; width: 100%; outline: none; }
+input:focus, textarea:focus, select:focus { border-color: rgba(255,255,255,.28); }
+input::placeholder, textarea::placeholder { color: var(--text-5); }
 button { cursor: pointer; font: inherit; transition: all .15s ease; }
 button:active { transform: scale(.98); }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--text-2); outline-offset: 2px; }

@@ -10,7 +10,7 @@ export const DISTRICTS = [
 ];
 export const AVAILABILITY = [
   ['disponivel', 'Disponível', 'var(--green)'],
-  ['limitada', 'Disponibilidade limitada', 'var(--accent)'],
+  ['limitada', 'Disponibilidade limitada', 'var(--gold)'],
   ['indisponivel', 'Indisponível', 'var(--danger)'],
 ];
 export const PREFS = ['Dias úteis', 'Fins de semana', 'Noites', 'Última hora'];

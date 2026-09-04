@@ -32,7 +32,7 @@ export default function RegisterCompanyPage() {
       <form onSubmit={submit} style={{ width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 14 }}>
         <h1 style={{ fontSize: 26, fontWeight: 800 }}>Registar empresa</h1>
         <p style={{ fontSize: 13, color: 'var(--text-3)', margin: 0 }}>Acesso ao diretório de staff e publicação de trabalhos.</p>
-        {error && <div style={{ background: 'rgba(230,57,70,0.1)', border: '1px solid rgba(230,57,70,0.35)', borderRadius: 'var(--radius)', color: 'var(--danger)', padding: '10px 14px', fontSize: 13 }}>{error}</div>}
+        {error && <div style={{ background: 'rgba(225,29,72,0.1)', border: '1px solid rgba(225,29,72,0.35)', borderRadius: 'var(--radius)', color: 'var(--danger)', padding: '10px 14px', fontSize: 13 }}>{error}</div>}
         <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, color: 'var(--text-3)' }}>Nome da empresa
           <input value={form.company} onChange={set('company')} autoComplete="organization" /></label>
         <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, color: 'var(--text-3)' }}>Email
@@ -43,11 +43,11 @@ export default function RegisterCompanyPage() {
           <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} style={{ width: 'auto', marginTop: 2 }} />
           <span>Aceito o tratamento dos dados da empresa para gestão da conta (RGPD).</span>
         </label>
-        <button type="submit" disabled={saving} style={{ background: 'var(--accent)', color: '#08222E', fontWeight: 700, border: 'none', borderRadius: 'var(--radius)', padding: '13px 18px', opacity: saving ? 0.6 : 1 }}>
+        <button type="submit" disabled={saving} style={{ background: 'var(--text)', color: '#0A0A0B', fontWeight: 700, border: 'none', borderRadius: 99, padding: '15px 18px', opacity: saving ? 0.6 : 1 }}>
           {saving ? 'A criar…' : 'Registar empresa'}
         </button>
         <p style={{ fontSize: 13, color: 'var(--text-3)', textAlign: 'center' }}>
-          És trabalhador/a? <Link to="/registar" style={{ color: 'var(--accent)' }}>Criar perfil aqui</Link>
+          És trabalhador/a? <Link to="/registar" style={{ color: 'var(--gold)' }}>Criar perfil aqui</Link>
         </p>
       </form>
     </div>
