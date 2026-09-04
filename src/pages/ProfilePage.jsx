@@ -118,6 +118,7 @@ export default function ProfilePage() {
             <div key={v.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--border)', fontSize: 14 }}>
               <span style={{ color: 'var(--green)', fontWeight: 700 }}>✓</span> <b>{v.role}</b>
               <span style={{ color: 'var(--text-2)' }}> — validado por {v.companyName}</span>
+              {v.viaApp && <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--accent)', border: '1px solid rgba(76,201,240,0.4)', borderRadius: 99, padding: '1px 8px', marginLeft: 6 }}>APP OFICIAL</span>}
               <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{v.period ? ` · ${v.period}` : ''}{v.hours ? ` · ${v.hours}h` : ''}</span>
             </div>
           ))}
@@ -131,6 +132,9 @@ export default function ProfilePage() {
           Perfil visível no diretório
         </label>
         <input value={p.phone} onChange={e => setP({ ...p, phone: e.target.value })} placeholder="Telefone (opcional — visível a quem te encontrar)" />
+        <p style={{ fontSize: 12, color: 'var(--text-4)', marginTop: 10 }}>
+          💡 Trabalhas com uma empresa que usa a app MaosOps? Usa aqui o <b>mesmo email</b> — os teus trabalhos validados sincronizam automaticamente para o teu perfil e ranking.
+        </p>
       </div>
     </div>
   );

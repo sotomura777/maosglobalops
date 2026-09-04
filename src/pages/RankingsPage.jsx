@@ -18,7 +18,7 @@ export default function RankingsPage() {
         vals.forEach(v => {
           if (!pubIds.has(v.workerId)) return; // só perfis públicos entram no ranking
           agg[v.workerId] = agg[v.workerId] || { count: 0, hours: 0 };
-          agg[v.workerId].count += 1;
+          agg[v.workerId].count += Number(v.jobs) || 1; // apps oficiais trazem nº de trabalhos
           agg[v.workerId].hours += Number(v.hours) || 0;
         });
         setRows(Object.entries(agg)
@@ -47,7 +47,7 @@ export default function RankingsPage() {
             </div>
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontWeight: 800, color: 'var(--accent)' }}>{r.score} pts</div>
-              <div style={{ fontSize: 11, color: 'var(--text-4)' }}>{r.vCount} validações · {Math.round(r.vHours)}h</div>
+              <div style={{ fontSize: 11, color: 'var(--text-4)' }}>{r.vCount} trabalhos validados · {Math.round(r.vHours)}h</div>
             </div>
           </div>
         ))}
