@@ -1,4 +1,8 @@
-import { scheduleOf } from "../../functions/schedule.js";
+import { scheduleOf, isLateCancellation } from "../../functions/schedule.js";
+export const isLateCancel = (a, now = Date.now()) =>
+  a?.status === "confirmed" &&
+  a?.agreedTerms?.startMs > 0 &&
+  isLateCancellation(a.agreedTerms.startMs, now);
 export const STATUS = {
   pending: "Candidatura enviada",
   accepted: "Aguarda confirmação",

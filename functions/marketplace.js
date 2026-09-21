@@ -1,6 +1,6 @@
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
-import { scheduleOf, overlaps } from "./schedule.js";
+import { scheduleOf, overlaps, isLateCancellation } from "./schedule.js";
 const fail = (message, code = "failed-precondition") => {
   throw new HttpsError(code, message);
 };
@@ -310,6 +310,16 @@ export function createMarketplace(db, clock = Date.now) {
         bumpReputation({ noShows: FieldValue.increment(1) });
       if (attendance?.status === "late")
         bumpReputation({ late: FieldValue.increment(1) });
+      // Só o cancelamento do trabalhador depois de confirmado conta contra ele.
+      if (a.status === "confirmed" && next === "cancelled" && role === "worker") {
+        const startMs = a.agreedTerms?.startMs ?? schedule(job).startMs;
+        bumpReputation({
+          cancellationsTotal: FieldValue.increment(1),
+          ...(isLateCancellation(startMs, now)
+            ? { cancellationsLate: FieldValue.increment(1) }
+            : {}),
+        });
+      }
       if (changesOccupation) {
         tx.update(jobRef, { filled: filled + (confirms ? 1 : -1) });
         tx.set(workerLock, { updatedAt: FieldValue.serverTimestamp() });

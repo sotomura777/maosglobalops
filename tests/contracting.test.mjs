@@ -333,6 +333,47 @@ test("company marks attendance and no-shows, feeding the worker's server-only re
   assert.equal((await db.doc("reputations/third").get()).data().noShows, 1);
 });
 
+test("only a worker's cancellation after confirmation counts, and late ones are flagged", async () => {
+  now = Date.parse("2099-01-01T00:00:00Z");
+  const read = async () => (await db.doc("reputations/worker").get()).data() || {};
+  const before = await read();
+  const base = {
+    total: before.cancellationsTotal || 0,
+    late: before.cancellationsLate || 0,
+  };
+  const confirm = async (id, date) => {
+    await call("company", { operation: "publish", id, job: { ...job, date } });
+    await call("worker", { operation: "apply", jobId: id, message: "" });
+    await change("company", `${id}_worker`, "pending", "accepted");
+    await change("worker", `${id}_worker`, "accepted", "confirmed");
+  };
+  // Withdrawing before confirmation does not count.
+  await call("company", {
+    operation: "publish",
+    id: "c-early",
+    job: { ...job, date: "2099-03-10" },
+  });
+  await call("worker", { operation: "apply", jobId: "c-early", message: "" });
+  await change("worker", "c-early_worker", "pending", "cancelled", "Mudei de ideias");
+  // A company cancellation does not count against the worker.
+  await confirm("c-comp", "2099-04-10");
+  await change("company", "c-comp_worker", "confirmed", "cancelled", "Sem necessidade");
+  assert.equal((await read()).cancellationsTotal || 0, base.total);
+  // Worker cancels a confirmed job far from the start: counts, not late.
+  await confirm("c-far", "2099-05-10");
+  await change("worker", "c-far_worker", "confirmed", "cancelled", "Indisponível");
+  let rep = await read();
+  assert.equal(rep.cancellationsTotal, base.total + 1);
+  assert.equal(rep.cancellationsLate || 0, base.late);
+  // Worker cancels within 24h of the start: counts and is flagged late.
+  await confirm("c-late", "2099-06-10");
+  now = scheduleOf({ ...job, date: "2099-06-10" }).startMs - 3 * 3600000;
+  await change("worker", "c-late_worker", "confirmed", "cancelled", "Emergência");
+  rep = await read();
+  assert.equal(rep.cancellationsTotal, base.total + 2);
+  assert.equal(rep.cancellationsLate, base.late + 1);
+});
+
 test('legacy migration is dry-run, idempotent, preserves malformed history and detects conflicts', async () => {
   const { spawnSync } = await import('node:child_process');
   await db.doc('jobs/legacy-invalid').set({ title: 'Histórico', status: 'closed', companyId: 'company' });

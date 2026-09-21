@@ -5,6 +5,7 @@ import {
   validateJob,
   estimatePay,
   matchesJob,
+  isLateCancel,
 } from "../src/marketplace/model.js";
 test("worker and company must each confirm the agreed stages", () => {
   assert.deepEqual(
@@ -29,6 +30,18 @@ test("worker and company must each confirm the agreed stages", () => {
     assert.deepEqual(actionsFor(status, true), []);
     assert.deepEqual(actionsFor(status, false), []);
   }
+});
+test("late cancellation only applies within 24h of a confirmed shift's start", () => {
+  const start = Date.parse("2099-10-10T18:00:00Z");
+  const confirmed = { status: "confirmed", agreedTerms: { startMs: start } };
+  assert.equal(isLateCancel(confirmed, start - 25 * 3600000), false);
+  assert.equal(isLateCancel(confirmed, start - 12 * 3600000), true);
+  // Only confirmed engagements with a known start can be late.
+  assert.equal(
+    isLateCancel({ status: "accepted", agreedTerms: { startMs: start } }, start),
+    false,
+  );
+  assert.equal(isLateCancel({ status: "confirmed" }, start), false);
 });
 test("job rejects invalid numbers, dates and incomplete payment conditions", () => {
   const j = {

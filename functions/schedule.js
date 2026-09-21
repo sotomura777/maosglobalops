@@ -67,3 +67,7 @@ export function scheduleOf(job) {
   return { startMs, endMs, timeZone: zone };
 }
 export const overlaps = (a, b) => a.startMs < b.endMs && b.startMs < a.endMs;
+// Cancelar um trabalho confirmado a menos de 24h do início conta como cancelamento tardio.
+export const LATE_CANCEL_MS = 24 * 3600000;
+export const isLateCancellation = (startMs, now) =>
+  Number.isFinite(startMs) && startMs - now < LATE_CANCEL_MS;

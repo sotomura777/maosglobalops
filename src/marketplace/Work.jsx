@@ -12,6 +12,7 @@ import {
   statusFor,
   needsResponse,
   timestampMillis,
+  isLateCancel,
 } from "./model";
 import {
   watchOwnJobs,
@@ -606,6 +607,12 @@ function EngagementView() {
             <strong>
               {actionsFor(a.status, company).find(([s]) => s === next)?.[1]}
             </strong>
+            {!company && next === "cancelled" && isLateCancel(a) && (
+              <p className="subtle" style={{ color: "var(--danger, #b3261e)" }}>
+                Faltam menos de 24h para o início — este cancelamento fica
+                registado como cancelamento tardio no teu histórico.
+              </p>
+            )}
             {next === "confirmed" && a.status === "accepted" && (
               <label className="row subtle">
                 <input type="checkbox" required />
