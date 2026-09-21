@@ -187,6 +187,18 @@ export const getWorkHistory = async (workerId) =>
       query(collection(db, "workHistory"), where("workerId", "==", workerId)),
     ),
   ).sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+export const getHistoryClaims = async (workerId) =>
+  rows(await getDocs(collection(db, "profiles", workerId, "historyClaims"))).sort(
+    (a, b) => (b.date || "").localeCompare(a.date || ""),
+  );
+export const createHistoryClaim = (uid, data) =>
+  setDoc(doc(collection(db, "profiles", uid, "historyClaims")), {
+    ...data,
+    status: data.companyId ? "pending" : "self_declared",
+    createdAt: serverTimestamp(),
+  });
+export const deleteHistoryClaim = (uid, claimId) =>
+  deleteDoc(doc(db, "profiles", uid, "historyClaims", claimId));
 export const review = (a, uid, rating, text) =>
   setDoc(doc(db, "reviews", `${a.id}_${uid}`), {
     engagementId: a.id,

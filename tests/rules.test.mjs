@@ -314,6 +314,34 @@ test("profile trust fields and imported validation badges cannot be self-assigne
   });
   await assertSucceeds(getDoc(doc(worker, "workHistory", "wh1")));
 });
+test("workers declare past jobs but can never self-verify or edit a verified one", async () => {
+  const base = {
+    title: "Bar",
+    companyName: "Festival X",
+    status: "self_declared",
+    createdAt: "2026-09-14",
+  };
+  const claim = (id) =>
+    doc(worker, "profiles", "worker", "historyClaims", id);
+  await assertSucceeds(setDoc(claim("h1"), base));
+  await assertSucceeds(
+    setDoc(claim("h2"), { ...base, companyId: "company", status: "pending" }),
+  );
+  await assertSucceeds(getDoc(claim("h1")));
+  // The worker cannot grant themselves the verified badge.
+  await assertFails(setDoc(claim("h3"), { ...base, status: "verified" }));
+  // Another account cannot write into the worker's claims.
+  await assertFails(
+    setDoc(doc(company, "profiles", "worker", "historyClaims", "h4"), base),
+  );
+  // A server-verified entry is frozen against client edits or deletion.
+  await seed("profiles/worker/historyClaims", "hv", {
+    ...base,
+    status: "verified",
+  });
+  await assertFails(updateDoc(claim("hv"), { title: "Alterado" }));
+  await assertFails(deleteDoc(claim("hv")));
+});
 test("personal logs, saved jobs and notifications remain private", async () => {
   await assertSucceeds(
     setDoc(doc(worker, "profiles", "worker", "savedJobs", "job"), {

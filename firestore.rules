@@ -51,6 +51,21 @@ service cloud.firestore {
         allow read: if self(uid);
         allow create, update: if self(uid) && request.resource.data.keys().hasOnly(['at']) && request.resource.data.at == request.time;
       }
+      // Trabalhos anteriores declarados pelo trabalhador. O selo 'verified' só o servidor o põe (aprovação da empresa).
+      match /historyClaims/{claimId} {
+        allow read: if self(uid) || (signed() && get(/databases/$(database)/documents/publicProfiles/$(uid)).data.public == true);
+        allow create, update: if self(uid) && kind('worker') &&
+          request.resource.data.keys().hasOnly(['title','companyName','companyId','date','hours','description','status','createdAt']) &&
+          request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 120 &&
+          request.resource.data.companyName is string && request.resource.data.companyName.size() > 0 && request.resource.data.companyName.size() <= 200 &&
+          request.resource.data.status in ['self_declared','pending'] &&
+          shortText(request.resource.data.get('companyId',''),200) &&
+          shortText(request.resource.data.get('description',''),500) &&
+          shortText(request.resource.data.get('date',''),10) &&
+          request.resource.data.get('hours',0) is number &&
+          (resource == null || resource.data.status != 'verified');
+        allow delete: if self(uid) && resource.data.status != 'verified';
+      }
     }
     match /publicProfiles/{uid} {
       allow read: if self(uid) || (signed() && resource.data.public == true);

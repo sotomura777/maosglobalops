@@ -3,7 +3,14 @@ import { Link, useParams, useBlocker } from "react-router-dom";
 import { useAuth } from "../App";
 import { listPublicProfiles, updateProfile } from "../services/profileService";
 import { listValidationsFor } from "../services/workService";
-import { getPublicProfile, getReviews, getWorkHistory } from "./service";
+import {
+  getPublicProfile,
+  getReviews,
+  getWorkHistory,
+  getHistoryClaims,
+  createHistoryClaim,
+  deleteHistoryClaim,
+} from "./service";
 import { dateLabel } from "./model";
 import { CATEGORIES, DISTRICTS, AVAILABILITY, PREFS } from "../constants";
 import { initials } from "../ui";
@@ -136,6 +143,7 @@ export function PublicProfile() {
   const [vals, setVals] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [history, setHistory] = useState([]);
+  const [claims, setClaims] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -147,13 +155,15 @@ export function PublicProfile() {
       listValidationsFor(id),
       getReviews(id),
       getWorkHistory(id),
+      getHistoryClaims(id).catch(() => []),
     ])
-      .then(([p, v, r, h]) => {
+      .then(([p, v, r, h, c]) => {
         if (active) {
           setP(p);
           setVals(v);
           setReviews(r);
           setHistory(h);
+          setClaims(c);
         }
       })
       .catch(() => {
@@ -299,23 +309,44 @@ export function PublicProfile() {
       {!company && (
         <div className="panel" style={{ marginTop: 16 }}>
           <h3 className="section-title">Histórico de trabalhos</h3>
-          {history.length ? (
-            history.map((h) => (
-              <div className="review" key={h.id}>
-                <div className="row between wrap">
-                  <strong>{h.title}</strong>
-                  <span className="tag green">
-                    {h.source === "external"
-                      ? "Confirmado pela empresa"
-                      : "Verificado"}
-                  </span>
+          {history.length ||
+          claims.filter((c) => c.status !== "verified").length ? (
+            <>
+              {history.map((h) => (
+                <div className="review" key={h.id}>
+                  <div className="row between wrap">
+                    <strong>{h.title}</strong>
+                    <span className="tag green">
+                      {h.source === "external"
+                        ? "Confirmado pela empresa"
+                        : "Verificado"}
+                    </span>
+                  </div>
+                  <p>
+                    {h.companyName} · {dateLabel(h.date)}
+                    {h.hours ? ` · ${h.hours} h` : ""}
+                  </p>
                 </div>
-                <p>
-                  {h.companyName} · {dateLabel(h.date)}
-                  {h.hours ? ` · ${h.hours} h` : ""}
-                </p>
-              </div>
-            ))
+              ))}
+              {claims
+                .filter((c) => c.status !== "verified")
+                .map((c) => (
+                  <div className="review" key={c.id}>
+                    <div className="row between wrap">
+                      <strong>{c.title}</strong>
+                      <span className="tag">
+                        {c.status === "pending"
+                          ? "A aguardar confirmação"
+                          : "Auto-declarado"}
+                      </span>
+                    </div>
+                    <p>
+                      {c.companyName} · {dateLabel(c.date)}
+                      {c.hours ? ` · ${c.hours} h` : ""}
+                    </p>
+                  </div>
+                ))}
+            </>
           ) : (
             <p className="subtle" style={{ marginTop: 16 }}>
               Ainda sem trabalhos no histórico. Os trabalhos concluídos na
@@ -353,6 +384,167 @@ export function PublicProfile() {
         )}
       </div>
     </>
+  );
+}
+function PastJobsEditor({ uid, hidden }) {
+  const [claims, setClaims] = useState([]);
+  const [companies, setCompanies] = useState([]);
+  const [form, setForm] = useState({
+    companyId: "",
+    companyName: "",
+    title: "",
+    date: "",
+    hours: "",
+    description: "",
+  });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const load = () => getHistoryClaims(uid).then(setClaims).catch(() => {});
+  useEffect(() => {
+    load();
+    listPublicProfiles()
+      .then((all) => setCompanies(all.filter((p) => p.kind === "company")))
+      .catch(() => {});
+  }, [uid]);
+  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const pickCompany = (e) => {
+    const c = companies.find((x) => x.id === e.target.value);
+    setForm((f) => ({
+      ...f,
+      companyId: c?.id || "",
+      companyName: c?.name || "",
+    }));
+  };
+  const add = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      const data = {
+        title: form.title.trim(),
+        companyName: form.companyName.trim(),
+      };
+      if (form.companyId) data.companyId = form.companyId;
+      if (form.date) data.date = form.date;
+      if (form.description.trim()) data.description = form.description.trim();
+      if (Number(form.hours) > 0) data.hours = Number(form.hours);
+      await createHistoryClaim(uid, data);
+      setForm({
+        companyId: "",
+        companyName: "",
+        title: "",
+        date: "",
+        hours: "",
+        description: "",
+      });
+      await load();
+    } catch (err) {
+      setError(err.message || "Não foi possível guardar.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  const remove = async (id) => {
+    await deleteHistoryClaim(uid, id).catch(() => {});
+    await load();
+  };
+  return (
+    <div hidden={hidden} className="panel">
+      <h3 className="section-title">Trabalhos anteriores</h3>
+      <p className="subtle" style={{ marginBottom: 16 }}>
+        Adiciona trabalhos que já fizeste, na plataforma ou fora dela. Se
+        escolheres uma empresa registada, ela recebe um pedido para confirmar;
+        caso contrário fica como auto-declarado.
+      </p>
+      <ErrorBox>{error}</ErrorBox>
+      {claims.map((c) => (
+        <div className="review row between" key={c.id}>
+          <div>
+            <strong>
+              {c.title} · {c.companyName}
+            </strong>
+            <p>
+              {dateLabel(c.date)} ·{" "}
+              {c.status === "verified"
+                ? "Confirmado pela empresa"
+                : c.status === "pending"
+                  ? "A aguardar confirmação"
+                  : "Auto-declarado"}
+            </p>
+          </div>
+          {c.status !== "verified" && (
+            <button
+              type="button"
+              className="quiet"
+              aria-label={`Remover ${c.title}`}
+              onClick={() => remove(c.id)}
+            >
+              Remover
+            </button>
+          )}
+        </div>
+      ))}
+      <form className="form-grid" style={{ marginTop: 16 }} onSubmit={add}>
+        <Field label="Função / cargo">
+          <input
+            maxLength={120}
+            required
+            value={form.title}
+            onChange={set("title")}
+          />
+        </Field>
+        <Field label="Empresa registada (opcional)">
+          <select value={form.companyId} onChange={pickCompany}>
+            <option value="">Fora da plataforma</option>
+            {companies.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+        {!form.companyId && (
+          <Field label="Nome da empresa / evento">
+            <input
+              maxLength={200}
+              required
+              value={form.companyName}
+              onChange={set("companyName")}
+            />
+          </Field>
+        )}
+        <Field label="Data">
+          <input type="date" value={form.date} onChange={set("date")} />
+        </Field>
+        <Field label="Horas (opcional)">
+          <input
+            type="number"
+            min="0"
+            max="10000"
+            value={form.hours}
+            onChange={set("hours")}
+          />
+        </Field>
+        <Field label="Descrição (opcional)">
+          <textarea
+            maxLength={500}
+            rows={2}
+            value={form.description}
+            onChange={set("description")}
+          />
+        </Field>
+        <button
+          className="btn secondary"
+          disabled={
+            busy ||
+            !form.title.trim() ||
+            (!form.companyId && !form.companyName.trim())
+          }
+        >
+          {busy ? "A guardar…" : "Adicionar trabalho"}
+        </button>
+      </form>
+    </div>
   );
 }
 export function EditProfile() {
@@ -792,6 +984,7 @@ export function EditProfile() {
                 Adicionar experiência
               </button>
             </div>
+            <PastJobsEditor uid={user.uid} hidden={section !== "experience"} />
           </>
         )}
         <div hidden={section !== "visibility"} className="panel">
