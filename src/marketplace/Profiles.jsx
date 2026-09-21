@@ -538,14 +538,9 @@ function PastJobsEditor({ uid, hidden }) {
           )}
         </div>
       ))}
-      <form className="form-grid" style={{ marginTop: 16 }} onSubmit={add}>
+      <div className="form-grid" style={{ marginTop: 16 }}>
         <Field label="Função / cargo">
-          <input
-            maxLength={120}
-            required
-            value={form.title}
-            onChange={set("title")}
-          />
+          <input maxLength={120} value={form.title} onChange={set("title")} />
         </Field>
         <Field label="Empresa registada (opcional)">
           <select value={form.companyId} onChange={pickCompany}>
@@ -561,7 +556,6 @@ function PastJobsEditor({ uid, hidden }) {
           <Field label="Nome da empresa / evento">
             <input
               maxLength={200}
-              required
               value={form.companyName}
               onChange={set("companyName")}
             />
@@ -588,7 +582,9 @@ function PastJobsEditor({ uid, hidden }) {
           />
         </Field>
         <button
+          type="button"
           className="btn secondary"
+          onClick={add}
           disabled={
             busy ||
             !form.title.trim() ||
@@ -597,7 +593,7 @@ function PastJobsEditor({ uid, hidden }) {
         >
           {busy ? "A guardar…" : "Adicionar trabalho"}
         </button>
-      </form>
+      </div>
     </div>
   );
 }

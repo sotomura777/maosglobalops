@@ -324,6 +324,10 @@ test("empresa e profissional: publicar, pesquisar, guardar, contratar, conversar
   await company
     .getByRole("button", { name: "Assinalar como realizado" })
     .click();
+  await company.screenshot({
+    path: testInfo.outputPath("presenca-form.png"),
+    fullPage: true,
+  });
   await company
     .getByRole("button", { name: "Assinalar como realizado", exact: true })
     .last()
@@ -381,6 +385,28 @@ test("empresa e profissional: publicar, pesquisar, guardar, contratar, conversar
   ).toBeVisible();
   await company.screenshot({
     path: testInfo.outputPath("perfil-desktop.png"),
+    fullPage: true,
+  });
+  await worker.goto("/app/perfil");
+  await worker.getByRole("button", { name: "Editar experiência" }).click();
+  await worker.getByLabel("Função / cargo").fill("Chefe de bar");
+  await worker
+    .getByLabel("Empresa registada (opcional)")
+    .selectOption({ index: 1 });
+  await worker.screenshot({
+    path: testInfo.outputPath("trabalhos-anteriores.png"),
+    fullPage: true,
+  });
+  await worker.getByRole("button", { name: "Adicionar trabalho" }).click();
+  await expect(
+    worker.getByText("A aguardar confirmação", { exact: false }).first(),
+  ).toBeVisible();
+  await company.goto("/app/aprovacoes");
+  await expect(
+    company.getByText("Chefe de bar", { exact: false }),
+  ).toBeVisible({ timeout: 10000 });
+  await company.screenshot({
+    path: testInfo.outputPath("aprovacoes.png"),
     fullPage: true,
   });
   await worker.goto("/app/ganhos");
