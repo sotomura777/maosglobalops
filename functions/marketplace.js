@@ -157,6 +157,46 @@ export function createMarketplace(db, clock = Date.now) {
       });
       return { id: ref.id };
     }
+    if (operation === "endorse") {
+      const workerId = id(data.workerId),
+        claimId = id(data.claimId);
+      const approve = data.decision === "approve";
+      const claimRef = db.doc(`profiles/${workerId}/historyClaims/${claimId}`);
+      await db.runTransaction(async (tx) => {
+        const [c, snap] = await Promise.all([
+          tx.get(db.doc(`profiles/${uid}`)),
+          tx.get(claimRef),
+        ]);
+        if (c.data()?.kind !== "company")
+          fail("Só as empresas confirmam trabalhos.", "permission-denied");
+        const claim = snap.data();
+        if (!claim || claim.companyId !== uid)
+          fail("Pedido indisponível.", "permission-denied");
+        if (claim.status !== "pending") return; // Repetição do mesmo pedido é inócua.
+        if (approve) {
+          tx.update(claimRef, { status: "verified" });
+          tx.set(
+            db.doc(`workHistory/${workerId}_${claimId}`),
+            {
+              workerId,
+              companyId: uid,
+              companyName: c.data().name,
+              title: claim.title,
+              date: claim.date || "",
+              hours: Number(claim.hours) || 0,
+              verified: true,
+              source: "external",
+              approvedBy: uid,
+              createdAt: FieldValue.serverTimestamp(),
+            },
+            { merge: true },
+          );
+        } else {
+          tx.update(claimRef, { status: "self_declared" });
+        }
+      });
+      return { ok: true };
+    }
     if (operation !== "transition")
       fail("Operação inválida.", "invalid-argument");
     const ref = db.doc(`engagements/${id(data.id)}`);

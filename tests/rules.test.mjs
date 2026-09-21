@@ -12,6 +12,7 @@ import {
   getDoc,
   getDocs,
   collection,
+  collectionGroup,
   query,
   where,
   updateDoc,
@@ -341,6 +342,35 @@ test("workers declare past jobs but can never self-verify or edit a verified one
   });
   await assertFails(updateDoc(claim("hv"), { title: "Alterado" }));
   await assertFails(deleteDoc(claim("hv")));
+});
+test("a company only reads the pending approval requests addressed to it", async () => {
+  await seed("profiles/worker/historyClaims", "req", {
+    title: "Bar",
+    companyName: "Empresa",
+    companyId: "company",
+    status: "pending",
+    createdAt: "2026-09-14",
+  });
+  await assertSucceeds(
+    getDocs(
+      query(
+        collectionGroup(company, "historyClaims"),
+        where("companyId", "==", "company"),
+        where("status", "==", "pending"),
+      ),
+    ),
+  );
+  // Without the mandatory filters the group query is denied.
+  await assertFails(getDocs(collectionGroup(company, "historyClaims")));
+  await assertFails(
+    getDocs(
+      query(
+        collectionGroup(stranger, "historyClaims"),
+        where("companyId", "==", "company"),
+        where("status", "==", "pending"),
+      ),
+    ),
+  );
 });
 test("personal logs, saved jobs and notifications remain private", async () => {
   await assertSucceeds(

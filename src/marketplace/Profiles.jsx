@@ -10,7 +10,9 @@ import {
   getHistoryClaims,
   createHistoryClaim,
   deleteHistoryClaim,
+  endorse,
 } from "./service";
+import { useMarket } from "./context";
 import { dateLabel } from "./model";
 import { CATEGORIES, DISTRICTS, AVAILABILITY, PREFS } from "../constants";
 import { initials } from "../ui";
@@ -1041,6 +1043,72 @@ export function EditProfile() {
           </div>
         </div>
       </form>
+    </>
+  );
+}
+export function Approvals() {
+  const { approvals = [] } = useMarket();
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+  const decide = async (c, decision) => {
+    setBusy(c.id + decision);
+    setError("");
+    try {
+      await endorse(c.workerId, c.id, decision);
+    } catch (e) {
+      setError(e.message || "Não foi possível processar o pedido.");
+    } finally {
+      setBusy("");
+    }
+  };
+  return (
+    <>
+      <Heading eyebrow="Área da empresa" title="Pedidos de confirmação" />
+      <p className="subtle">
+        Profissionais pediram-te para confirmar trabalhos que fizeram contigo.
+        Ao confirmar, a entrada fica verificada no currículo deles.
+      </p>
+      <ErrorBox>{error}</ErrorBox>
+      {approvals.length ? (
+        approvals.map((c) => (
+          <div className="panel" key={c.id} style={{ marginTop: 16 }}>
+            <div className="row between wrap">
+              <div>
+                <strong>{c.title}</strong>
+                <p className="subtle">
+                  {c.companyName} · {dateLabel(c.date)}
+                  {c.hours ? ` · ${c.hours} h` : ""}
+                </p>
+                {c.description && <p className="subtle">{c.description}</p>}
+              </div>
+              <Link className="quiet" to={`/app/profissionais/${c.workerId}`}>
+                Ver perfil →
+              </Link>
+            </div>
+            <div className="actions" style={{ marginTop: 12 }}>
+              <button
+                className="btn gold"
+                disabled={!!busy}
+                onClick={() => decide(c, "approve")}
+              >
+                Confirmar trabalho
+              </button>
+              <button
+                className="btn secondary"
+                disabled={!!busy}
+                onClick={() => decide(c, "reject")}
+              >
+                Recusar
+              </button>
+            </div>
+          </div>
+        ))
+      ) : (
+        <Empty title="Sem pedidos pendentes">
+          Quando um profissional indicar que trabalhou contigo, o pedido de
+          confirmação aparece aqui.
+        </Empty>
+      )}
     </>
   );
 }

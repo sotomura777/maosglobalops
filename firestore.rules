@@ -67,6 +67,10 @@ service cloud.firestore {
         allow delete: if self(uid) && resource.data.status != 'verified';
       }
     }
+    // Consulta em grupo: a empresa vê apenas os pedidos de confirmação que lhe são dirigidos.
+    match /{path=**}/historyClaims/{claimId} {
+      allow read: if signed() && resource.data.companyId == request.auth.uid && resource.data.status == 'pending';
+    }
     match /publicProfiles/{uid} {
       allow read: if self(uid) || (signed() && resource.data.public == true);
       allow create, update: if self(uid) && profileEdit() &&

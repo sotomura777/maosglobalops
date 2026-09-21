@@ -22,7 +22,12 @@ import Layout from "./marketplace/Layout";
 import Home from "./marketplace/Home";
 import { Explore, JobDetails, NewJob } from "./marketplace/Jobs";
 import { MyWork, Engagement, Inbox } from "./marketplace/Work";
-import { Directory, PublicProfile, EditProfile } from "./marketplace/Profiles";
+import {
+  Directory,
+  PublicProfile,
+  EditProfile,
+  Approvals,
+} from "./marketplace/Profiles";
 import { MarketProvider } from "./marketplace/context";
 import "./marketplace/market.css";
 const AuthCtx = createContext({ user: null, profile: null, loading: true });
@@ -140,6 +145,7 @@ const router = createBrowserRouter(
           <Route path="profissionais/:id" element={<PublicProfile />} />
           <Route path="conta" element={<AccountPage />} />
           <Route path="perfil" element={<EditProfile />} />
+          <Route path="aprovacoes" element={<Approvals />} />
           <Route
             path="canais"
             element={

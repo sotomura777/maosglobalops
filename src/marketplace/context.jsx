@@ -1,5 +1,10 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { watchApplications, watchRead, watchSaved } from "./service";
+import {
+  watchApplications,
+  watchRead,
+  watchSaved,
+  watchApprovalRequests,
+} from "./service";
 import { timestampMillis } from "./model";
 import { useAuth } from "../App";
 const Context = createContext(null);
@@ -9,6 +14,7 @@ export function MarketProvider({ children }) {
   const [applications, setApplications] = useState([]);
   const [saved, setSaved] = useState([]);
   const [read, setRead] = useState({});
+  const [approvals, setApprovals] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -16,6 +22,7 @@ export function MarketProvider({ children }) {
     setApplications([]);
     setSaved([]);
     setRead({});
+    setApprovals([]);
     setError("");
     const fail = () => {
       setError(
@@ -35,6 +42,9 @@ export function MarketProvider({ children }) {
       ),
       watchSaved(user.uid, setSaved, fail),
       watchRead(user.uid, setRead, fail),
+      ...(profile.kind === "company"
+        ? [watchApprovalRequests(user.uid, setApprovals, () => {})]
+        : []),
     ];
     return () => stops.forEach((stop) => stop());
   }, [user.uid, profile.kind]);
@@ -56,7 +66,15 @@ export function MarketProvider({ children }) {
   );
   return (
     <Context.Provider
-      value={{ applications, saved, unread, unreadMessages, loading, error }}
+      value={{
+        applications,
+        saved,
+        unread,
+        unreadMessages,
+        approvals,
+        loading,
+        error,
+      }}
     >
       {children}
     </Context.Provider>

@@ -16,6 +16,7 @@ export function Icon({ name, ...props }) {
     message: "M21 3H3v14h5v4l5-4h8z",
     arrow: "M5 12h14M13 6l6 6-6 6",
     bookmark: "M6 3h12v18l-6-4-6 4z",
+    check: "M4 12l5 5L20 6",
   };
   return (
     <svg
@@ -36,7 +37,7 @@ export function Icon({ name, ...props }) {
 }
 export default function Layout() {
   const { profile, user } = useAuth();
-  const { unread, unreadMessages, error } = useMarket();
+  const { unread, unreadMessages, approvals = [], error } = useMarket();
   const company = profile.kind === "company";
   const nav = [
     ["/app", "home", "Início"],
@@ -47,6 +48,7 @@ export default function Layout() {
     ],
     ["/app/meus-trabalhos", "work", "Trabalhos"],
     ["/app/mensagens", "message", "Mensagens"],
+    ...(company ? [["/app/aprovacoes", "check", "Aprovações"]] : []),
     ["/app/perfil", "user", "Perfil"],
   ];
   return (
@@ -93,6 +95,9 @@ export default function Layout() {
                 {icon === "message" && unreadMessages.length > 0 && (
                   <span className="nav-count">{unreadMessages.length}</span>
                 )}
+                {icon === "check" && approvals.length > 0 && (
+                  <span className="nav-count">{approvals.length}</span>
+                )}
               </NavLink>
             ))}
           </nav>
@@ -133,6 +138,9 @@ export default function Layout() {
               {label}
               {icon === "message" && unreadMessages.length > 0 && (
                 <b className="nav-count">{unreadMessages.length}</b>
+              )}
+              {icon === "check" && approvals.length > 0 && (
+                <b className="nav-count">{approvals.length}</b>
               )}
             </span>
           </NavLink>

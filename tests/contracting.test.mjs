@@ -379,6 +379,53 @@ test("only a worker's cancellation after confirmation counts, and late ones are 
   assert.equal(rep.cancellationsLate, base.late + 1);
 });
 
+test("companies confirm or reject a worker's declared past job", async () => {
+  const claimRef = db.doc("profiles/worker/historyClaims/past1");
+  await claimRef.set({
+    title: "Bar",
+    companyName: "Festival X",
+    companyId: "company",
+    status: "pending",
+    date: "2088-05-01",
+    hours: 6,
+  });
+  const endorse = (uid, workerId, claimId, decision) =>
+    call(uid, { operation: "endorse", workerId, claimId, decision });
+  // A non-company account cannot confirm.
+  await rejected(endorse("other", "worker", "past1", "approve"), /empresas/);
+  // A different company cannot confirm a request addressed elsewhere.
+  await db.doc("profiles/worker/historyClaims/other-co").set({
+    title: "X",
+    companyName: "Y",
+    companyId: "stranger-co",
+    status: "pending",
+  });
+  await rejected(
+    endorse("company", "worker", "other-co", "approve"),
+    /indisponível/,
+  );
+  // The targeted company confirms: the claim is verified and public history is written.
+  await endorse("company", "worker", "past1", "approve");
+  assert.equal((await claimRef.get()).data().status, "verified");
+  const wh = (await db.doc("workHistory/worker_past1").get()).data();
+  assert.equal(wh.verified, true);
+  assert.equal(wh.source, "external");
+  assert.equal(wh.approvedBy, "company");
+  // Repeating the decision is inert.
+  await endorse("company", "worker", "past1", "approve");
+  // Rejection drops the request back to self-declared and writes no history.
+  const claim2 = db.doc("profiles/worker/historyClaims/past2");
+  await claim2.set({
+    title: "Mesa",
+    companyName: "Festival X",
+    companyId: "company",
+    status: "pending",
+  });
+  await endorse("company", "worker", "past2", "reject");
+  assert.equal((await claim2.get()).data().status, "self_declared");
+  assert.equal((await db.doc("workHistory/worker_past2").get()).exists, false);
+});
+
 test('legacy migration is dry-run, idempotent, preserves malformed history and detects conflicts', async () => {
   const { spawnSync } = await import('node:child_process');
   await db.doc('jobs/legacy-invalid').set({ title: 'Histórico', status: 'closed', companyId: 'company' });

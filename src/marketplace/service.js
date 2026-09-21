@@ -1,5 +1,6 @@
 import {
   collection,
+  collectionGroup,
   doc,
   getDoc,
   getDocs,
@@ -199,6 +200,25 @@ export const createHistoryClaim = (uid, data) =>
   });
 export const deleteHistoryClaim = (uid, claimId) =>
   deleteDoc(doc(db, "profiles", uid, "historyClaims", claimId));
+export const watchApprovalRequests = (companyId, cb, err) =>
+  onSnapshot(
+    query(
+      collectionGroup(db, "historyClaims"),
+      where("companyId", "==", companyId),
+      where("status", "==", "pending"),
+    ),
+    (s) =>
+      cb(
+        s.docs.map((d) => ({
+          ...d.data(),
+          id: d.id,
+          workerId: d.ref.parent.parent.id,
+        })),
+      ),
+    err,
+  );
+export const endorse = (workerId, claimId, decision) =>
+  contract({ operation: "endorse", workerId, claimId, decision });
 export const review = (a, uid, rating, text) =>
   setDoc(doc(db, "reviews", `${a.id}_${uid}`), {
     engagementId: a.id,
