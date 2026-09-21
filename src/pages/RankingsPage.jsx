@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../App';
-import { listAllValidations } from '../services/workService';
+import { listValidationsFor } from '../services/workService';
 import { listPublicProfiles } from '../services/profileService';
 import { scoreOf } from '../ui';
 
@@ -13,7 +13,13 @@ export default function RankingsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const [vals, pubs] = await Promise.all([listAllValidations(), listPublicProfiles()]);
+        const pubs = await listPublicProfiles();
+        const vals = [];
+        // Small batches bound concurrent reads; a profile may become private meanwhile.
+        for (let i = 0; i < pubs.length; i += 5) {
+          const batch = await Promise.all(pubs.slice(i, i + 5).map(p => listValidationsFor(p.id).catch(() => [])));
+          vals.push(...batch.flat());
+        }
         const pubIds = new Map(pubs.map(p => [p.id, p]));
         const agg = {};
         vals.forEach(v => {

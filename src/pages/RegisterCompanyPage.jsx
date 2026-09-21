@@ -5,8 +5,8 @@ import { signUpCompany } from '../services/companyService';
 
 export default function RegisterCompanyPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  useEffect(() => { if (user) navigate('/app', { replace: true }); }, [user, navigate]);
+  const { user, profile, loading } = useAuth();
+  useEffect(() => { if (user && profile && !loading) navigate('/app', { replace: true }); }, [user, profile, loading, navigate]);
   const [form, setForm] = useState({ company: '', email: '', password: '' });
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState('');

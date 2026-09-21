@@ -4,9 +4,9 @@ import { S, MONO, LightThread, CompanyMark, GOLD_GRAD } from '../ui';
 const goldText = { background: GOLD_GRAD, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' };
 
 const STEPS = [
-  ['01', 'Trabalhas', 'Candidatas-te no mercado aberto ou recebes escala da empresa onde já trabalhas.'],
-  ['02', 'A empresa valida', 'Função, período e horas. Sem validação não conta — é o que dá valor ao resto.'],
-  ['03', 'Sobes no ranking', '25 pontos por validação e 2 por hora. Só perfis públicos entram.'],
+  ['01', 'Encontra o teu trabalho', 'Explora ofertas por função, local e data. Conhece o horário, o valor e as condições antes de te candidatares.'],
+  ['02', 'Combina com a empresa', 'Envia a candidatura, fala com a empresa e confirma o serviço quando a proposta fizer sentido para ti.'],
+  ['03', 'Constrói o teu historial', 'Concluam o trabalho e partilhem uma avaliação. A experiência acompanha-te na próxima oportunidade.'],
 ];
 
 const COMPANIES = [
@@ -34,10 +34,10 @@ export default function LandingPage() {
             <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)' }}>Aberto a staff e empresas — grátis</span>
           </div>
           <h1 style={{ font: "800 clamp(32px, 7vw, 54px)/1.1 'Public Sans', sans-serif", letterSpacing: '-.028em', textWrap: 'pretty' }}>
-            O teu trabalho em eventos, <span style={goldText}>validado</span>.
+            O teu próximo trabalho, <span style={goldText}>à tua maneira</span>.
           </h1>
           <p style={{ font: "400 17px/1.6 'Public Sans', sans-serif", color: 'var(--text-3)', margin: '20px auto 30px', maxWidth: 500 }}>
-            Perfil profissional, experiência confirmada pelas empresas, disponibilidade num só sítio — e trabalhos a chegar até ti.
+            Um mercado de trabalhos para profissionais por conta própria. Encontra oportunidades em eventos e restauração, combina os detalhes e gere os teus serviços.
           </p>
           <Link to="/registar" style={{ ...S.btn, display: 'inline-block', textDecoration: 'none', fontSize: 15, padding: '18px 30px' }}>
             Criar o meu perfil — grátis
@@ -53,7 +53,7 @@ export default function LandingPage() {
       <section style={{ padding: 'clamp(44px, 6vw, 62px) 24px', borderTop: '1px solid var(--border)' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <h2 style={{ font: "800 clamp(24px, 4vw, 32px)/1.14 'Public Sans', sans-serif", letterSpacing: '-.036em', maxWidth: 540, textWrap: 'pretty' }}>
-            O currículo que ninguém pode inflacionar.
+            Da primeira candidatura ao próximo trabalho.
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14, marginTop: 32 }}>
             {STEPS.map(([n, title, body]) => (
@@ -73,10 +73,10 @@ export default function LandingPage() {
           <div style={{ flex: '1 1 320px' }}>
             <div style={{ ...S.lbl, fontSize: 11, letterSpacing: '.16em' }}>Para empresas</div>
             <h2 style={{ font: "800 clamp(24px, 4vw, 30px)/1.15 'Public Sans', sans-serif", letterSpacing: '-.036em', marginTop: 16, textWrap: 'pretty' }}>
-              Publica trabalhos. Ou traz a operação toda.
+              Publica trabalhos. Encontra as pessoas certas.
             </h2>
             <p style={{ font: "400 14px/1.65 'Public Sans', sans-serif", color: 'var(--text-3)', marginTop: 14, maxWidth: 450 }}>
-              Adere e publica trabalhos para profissionais com historial verificado. Se precisares de mais, a tua empresa pode ter a sua própria app de gestão dentro da GlobalOps.
+              Apresenta as condições, recebe candidaturas e conhece os profissionais. Confirma os serviços e acompanha cada contratação, com mensagens e histórico num só lugar.
             </p>
             <Link to="/registar-empresa" style={{ ...S.btn, display: 'inline-block', textDecoration: 'none', padding: '16px 26px', marginTop: 26 }}>Registar empresa</Link>
           </div>

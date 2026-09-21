@@ -5,8 +5,8 @@ import { signUpWorker } from '../services/authService';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  useEffect(() => { if (user) navigate('/app', { replace: true }); }, [user, navigate]);
+  const { user, profile, loading } = useAuth();
+  useEffect(() => { if (user && profile && !loading) navigate('/app', { replace: true }); }, [user, profile, loading, navigate]);
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState('');

@@ -35,6 +35,7 @@ export default function LoginPage() {
         <button type="submit" disabled={saving} style={{ background: 'var(--text)', color: '#0A0A0B', fontWeight: 700, border: 'none', borderRadius: 99, padding: '15px 18px', opacity: saving ? 0.6 : 1 }}>
           {saving ? 'A entrar…' : 'Entrar'}
         </button>
+        <Link to="/recuperar-password">Esqueci-me da palavra-passe</Link>
         <p style={{ fontSize: 13, color: 'var(--text-3)', textAlign: 'center' }}>Ainda sem perfil? <Link to="/registar" style={{ color: 'var(--gold)' }}>Criar perfil</Link></p>
       </form>
     </div>
