@@ -1,86 +1,124 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isSignedIn() { return request.auth != null; }
-    function isSelf(uid) { return isSignedIn() && request.auth.uid == uid; }
-    function myKind() {
-      return get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.get('kind', '');
+    function signed() { return request.auth != null; }
+    function verified() { return signed() && request.auth.token.get('email_verified', false) == true; }
+    function self(uid) { return signed() && request.auth.uid == uid; }
+    function profile() { return get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data; }
+    function kind(k) { return signed() && profile().kind == k; }
+    function shortText(v, n) { return v is string && v.size() <= n; }
+    function participant(a) { return signed() && (a.workerId == request.auth.uid || a.companyId == request.auth.uid); }
+    function job(id) { return get(/databases/$(database)/documents/jobs/$(id)).data; }
+    function engagement(id) { return get(/databases/$(database)/documents/engagements/$(id)).data; }
+    function profileEdit() {
+      let d = request.resource.data;
+      return d.name is string && d.name.size() > 0 && d.name.size() <= 120 &&
+        shortText(d.get('headline', ''),160) && shortText(d.get('bio',''),2500) &&
+        shortText(d.get('phone',''),30) && shortText(d.get('district',''),100) &&
+        shortText(d.get('languages',''),100) && shortText(d.get('companyLegalName',''),200) &&
+        shortText(d.get('website',''),500) && d.get('public',false) is bool &&
+        d.get('categories',[]) is list && d.get('categories',[]).size() <= 12 &&
+        d.get('prefs',[]) is list && d.get('prefs',[]).size() <= 4 &&
+        d.get('experience',[]) is list && d.get('experience',[]).size() <= 50 &&
+        d.get('availability','disponivel') in ['disponivel','limitada','indisponivel'];
     }
-
-    // Perfis (trabalhadores e empresas): o dono cria/edita o seu; o diretório
-    // mostra só quem escolheu ser público. Identidade imutável.
     match /profiles/{uid} {
-      allow read: if isSelf(uid) || (isSignedIn() && resource.data.get('public', false) == true);
-      allow create: if isSelf(uid) &&
-        request.resource.data.get('kind', '') in ['worker', 'company'] &&
-        request.resource.data.keys().hasOnly(['kind', 'name', 'email', 'createdAt', 'gdprConsent']) &&
-        request.resource.data.gdprConsent == true;
-      allow update: if isSelf(uid) &&
-        !request.resource.data.diff(resource.data).affectedKeys()
-          .hasAny(['kind', 'email', 'createdAt', 'gdprConsent']);
-
-      // Contador de horas/ganhos — estritamente privado do dono
+      allow read: if self(uid);
+      allow create: if self(uid) && request.resource.data.keys().hasOnly(['kind','name','email','createdAt','gdprConsent']) &&
+        request.resource.data.kind in ['worker','company'] && request.resource.data.gdprConsent == true &&
+        request.resource.data.email == request.auth.token.email && profileEdit();
+      allow update: if self(uid) && profileEdit() && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'name','headline','bio','district','phone','languages','categories','prefs','availability','public','experience','companyLegalName','website','updatedAt','importExperience'
+      ]) && request.resource.data.get('importExperience',false) is bool &&
+        (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['public']) ||
+          getAfter(/databases/$(database)/documents/publicProfiles/$(uid)).data.public == request.resource.data.public);
       match /worklog/{entryId} {
-        allow read, write: if isSelf(uid);
+        allow read, delete: if self(uid);
+        allow create, update: if self(uid) && request.resource.data.keys().hasOnly(['date','hours','rate','company','createdAt']) &&
+          request.resource.data.hours is number && request.resource.data.hours > 0 && request.resource.data.hours <= 24 &&
+          request.resource.data.rate is number && request.resource.data.rate >= 0 && request.resource.data.rate <= 100000 &&
+          request.resource.data.date is string;
+      }
+      match /jobDrafts/{draftId} {
+        allow read, delete: if self(uid) && kind('company');
+        allow create, update: if self(uid) && kind('company') && request.resource.data.keys().hasOnly(['form','updatedAt']) && request.resource.data.updatedAt == request.time && request.resource.data.form is map && request.resource.data.form.keys().hasOnly(['title','category','district','location','date','startTime','endTime','vacancies','rate','payType','paymentTerms','description','transport','meal','equipment']) && shortText(request.resource.data.form.get('title',''),120) && shortText(request.resource.data.form.get('description',''),5000);
+      }
+      match /savedJobs/{jobId} {
+        allow read, delete: if self(uid);
+        allow create, update: if self(uid) && request.resource.data.keys().hasOnly(['savedAt']) && request.resource.data.savedAt == request.time;
+      }
+      match /readEvents/{eventId} {
+        allow read: if self(uid);
+        allow create, update: if self(uid) && request.resource.data.keys().hasOnly(['at']) && request.resource.data.at == request.time;
       }
     }
-
-    // Validações de trabalho por empresas — públicas dentro da app (alimentam
-    // o ranking e o perfil). Só empresas criam, sobre si próprias; imutáveis.
-    match /validations/{id} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && myKind() == 'company' &&
-        request.resource.data.companyId == request.auth.uid &&
-        request.resource.data.workerId is string &&
-        request.resource.data.role is string;
-      allow delete: if isSignedIn() && resource.data.companyId == request.auth.uid;
+    match /publicProfiles/{uid} {
+      allow read: if self(uid) || (signed() && resource.data.public == true);
+      allow create, update: if self(uid) && profileEdit() &&
+        request.resource.data.keys().hasOnly(['kind','name','public','headline','bio','district','languages','companyLegalName','website','availability','categories','prefs','experience']) &&
+        request.resource.data.kind == getAfter(/databases/$(database)/documents/profiles/$(uid)).data.kind &&
+        request.resource.data.public == getAfter(/databases/$(database)/documents/profiles/$(uid)).data.get('public',false);
     }
-
-    // Canais (tipo Discord): temas fixos t-* (todos publicam) e canais de
-    // empresa c-{uid} (só a própria publica; todos leem).
+    // Importações oficiais continuam a ser escritas exclusivamente pelo Admin SDK.
+    // A reputação nova é criada por avaliações de contratações concluídas.
+    match /validations/{id} { allow read: if self(resource.data.workerId) || (signed() && get(/databases/$(database)/documents/publicProfiles/$(resource.data.workerId)).data.public == true); }
     match /channels/{channelId} {
-      allow read: if isSignedIn();
-      // criação idempotente: tema com id t-*; empresa só o SEU c-{uid}
-      allow create, update: if isSignedIn() && (
-        (request.resource.data.type == 'topic' && channelId.matches('t-.*')) ||
-        (request.resource.data.type == 'company' && channelId == 'c-' + request.auth.uid &&
-         request.resource.data.companyId == request.auth.uid)
+      allow read: if signed();
+      allow create, update: if signed() && (
+        (channelId in ['t-geral','t-porto','t-lisboa','t-bar-e-mesa','t-montagens','t-ultima-hora'] &&
+          request.resource.data.keys().hasOnly(['type','name','createdAt']) && request.resource.data.type == 'topic' && shortText(request.resource.data.name,100)) ||
+        (kind('company') && channelId == 'c-' + request.auth.uid && request.resource.data.type == 'company' &&
+          request.resource.data.companyId == request.auth.uid && request.resource.data.name == profile().name &&
+          request.resource.data.keys().hasOnly(['type','name','createdAt','companyId','brandColor']))
       );
-
       match /posts/{postId} {
-        allow read: if isSignedIn();
-        allow create: if isSignedIn() &&
-          request.resource.data.authorId == request.auth.uid &&
-          request.resource.data.text is string && request.resource.data.text.size() <= 2000 &&
-          (
-            get(/databases/$(database)/documents/channels/$(channelId)).data.type == 'topic' ||
-            get(/databases/$(database)/documents/channels/$(channelId)).data.companyId == request.auth.uid
-          );
-        allow delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
+        allow read: if signed();
+        allow create: if signed() && request.resource.data.keys().hasOnly(['authorId','authorName','authorKind','text','createdAt']) &&
+          request.resource.data.authorId == request.auth.uid && request.resource.data.authorName == profile().name &&
+          request.resource.data.authorKind == profile().kind && shortText(request.resource.data.text,2000) && request.resource.data.text.size() > 0 && (
+          get(/databases/$(database)/documents/channels/$(channelId)).data.type == 'topic' ||
+          get(/databases/$(database)/documents/channels/$(channelId)).data.companyId == request.auth.uid);
+        allow delete: if signed() && resource.data.authorId == request.auth.uid;
       }
     }
-
-    // Trabalhos: empresas publicam; toda a gente autenticada vê os abertos.
-    // `featured` só o dono pode ter (slot pago no futuro — por agora ninguém
-    // consegue destacar-se: criado sempre a false, update não pode tocar-lhe).
     match /jobs/{jobId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && myKind() == 'company' &&
-        request.resource.data.companyId == request.auth.uid &&
-        request.resource.data.featured == false &&
-        request.resource.data.status == 'open';
-      allow update: if isSignedIn() && resource.data.companyId == request.auth.uid &&
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['companyId', 'featured']);
-      allow delete: if isSignedIn() && resource.data.companyId == request.auth.uid;
-
-      // Candidaturas: o trabalhador cria a SUA (doc id = uid); lê a sua;
-      // a empresa dona do trabalho lê todas.
+      allow read: if signed();
+      allow create: if false; // Publicação validada pela função contracting.
+      // Condições da oferta ficam estáveis depois de publicadas.
+      allow update: if signed() && resource.data.companyId == request.auth.uid && resource.data.status == 'open' &&
+        request.resource.data.status == 'closed' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+      // Preservar a leitura das candidaturas da primeira versão.
       match /applications/{workerUid} {
-        allow create: if isSelf(workerUid) && myKind() == 'worker';
-        allow read: if isSelf(workerUid) ||
-          (isSignedIn() && get(/databases/$(database)/documents/jobs/$(jobId)).data.companyId == request.auth.uid);
-        allow delete: if isSelf(workerUid);
+        allow read: if self(workerUid) || (signed() && job(jobId).companyId == request.auth.uid);
+        allow delete: if self(workerUid);
       }
+    }
+    match /engagements/{id} {
+      allow get: if signed() && !exists(/databases/$(database)/documents/engagements/$(id)) && id.matches('.*_' + request.auth.uid);
+      allow read: if participant(resource.data);
+      allow create: if false;
+      // Estado, agenda, vagas e condições aceites são escritos apenas no servidor.
+      allow update: if participant(resource.data) && request.resource.data.updatedAt == request.time &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessageBy','lastMessageAt','updatedAt','lastMessageText']) &&
+        request.resource.data.lastMessageBy == request.auth.uid && request.resource.data.lastMessageAt == request.time &&
+        shortText(request.resource.data.get('lastMessageText',''),160);
+      match /events/{eventId} { allow read: if participant(engagement(id)); }
+      match /messages/{messageId} {
+        allow read: if participant(engagement(id));
+        allow create: if participant(engagement(id)) && request.resource.data.keys().hasOnly(['senderId','text','createdAt']) &&
+          request.resource.data.senderId == request.auth.uid && shortText(request.resource.data.text,2000) &&
+          request.resource.data.text.size() > 0 && request.resource.data.createdAt == request.time;
+      }
+    }
+    match /reviews/{id} {
+      allow read: if signed();
+      allow create: if signed() && request.resource.data.keys().hasOnly(['engagementId','authorId','subjectId','rating','text','createdAt']) &&
+        participant(engagement(request.resource.data.engagementId)) && engagement(request.resource.data.engagementId).status == 'completed' &&
+        request.resource.data.authorId == request.auth.uid && id == request.resource.data.engagementId + '_' + request.auth.uid &&
+        request.resource.data.subjectId == (request.auth.uid == engagement(request.resource.data.engagementId).companyId ?
+          engagement(request.resource.data.engagementId).workerId : engagement(request.resource.data.engagementId).companyId) &&
+        request.resource.data.rating is int && request.resource.data.rating >= 1 && request.resource.data.rating <= 5 &&
+        shortText(request.resource.data.text,1500) && request.resource.data.createdAt == request.time;
     }
   }
 }
