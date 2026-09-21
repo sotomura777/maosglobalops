@@ -10,10 +10,11 @@ import {
   getHistoryClaims,
   createHistoryClaim,
   deleteHistoryClaim,
+  getReputation,
   endorse,
 } from "./service";
 import { useMarket } from "./context";
-import { dateLabel } from "./model";
+import { dateLabel, attendanceRate } from "./model";
 import { CATEGORIES, DISTRICTS, AVAILABILITY, PREFS } from "../constants";
 import { initials } from "../ui";
 import { Heading, Field, Empty, ErrorBox } from "./Layout";
@@ -146,6 +147,7 @@ export function PublicProfile() {
   const [reviews, setReviews] = useState([]);
   const [history, setHistory] = useState([]);
   const [claims, setClaims] = useState([]);
+  const [rep, setRep] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -158,14 +160,16 @@ export function PublicProfile() {
       getReviews(id),
       getWorkHistory(id),
       getHistoryClaims(id).catch(() => []),
+      getReputation(id).catch(() => ({})),
     ])
-      .then(([p, v, r, h, c]) => {
+      .then(([p, v, r, h, c, rp]) => {
         if (active) {
           setP(p);
           setVals(v);
           setReviews(r);
           setHistory(h);
           setClaims(c);
+          setRep(rp);
         }
       })
       .catch(() => {
@@ -193,6 +197,32 @@ export function PublicProfile() {
   const avg = reviews.length
     ? reviews.reduce((n, r) => n + r.rating, 0) / reviews.length
     : null;
+  const rate = attendanceRate(rep);
+  const hasReputation =
+    (rep.completed || 0) + (rep.noShows || 0) + (rep.cancellationsTotal || 0) >
+    0;
+  const timeline = [
+    ...history.map((h) => ({
+      key: `h-${h.id}`,
+      title: h.title,
+      company: h.companyName,
+      date: h.date,
+      hours: h.hours,
+      badge: h.source === "external" ? "Confirmado pela empresa" : "Verificado",
+      tone: "green",
+    })),
+    ...claims
+      .filter((c) => c.status !== "verified")
+      .map((c) => ({
+        key: `c-${c.id}`,
+        title: c.title,
+        company: c.companyName,
+        date: c.date,
+        hours: c.hours,
+        badge: c.status === "pending" ? "A aguardar confirmação" : "Auto-declarado",
+        tone: "",
+      })),
+  ].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
   return (
     <>
       <Heading
@@ -271,6 +301,53 @@ export function PublicProfile() {
           </p>
         )}
       </div>
+      {!company && (
+        <div className="panel" style={{ marginTop: 16 }}>
+          <h3 className="section-title">Fiabilidade</h3>
+          {hasReputation ? (
+            <div className="detail-grid">
+              <div>
+                <small>Trabalhos concluídos</small>
+                <strong>{rep.completed || 0}</strong>
+              </div>
+              {rate !== null && (
+                <div>
+                  <small>Comparência</small>
+                  <strong>{rate}%</strong>
+                </div>
+              )}
+              <div>
+                <small>Faltas</small>
+                <strong>{rep.noShows || 0}</strong>
+              </div>
+              <div>
+                <small>Atrasos</small>
+                <strong>{rep.late || 0}</strong>
+              </div>
+              <div>
+                <small>Cancelamentos</small>
+                <strong>
+                  {rep.cancellationsTotal || 0}
+                  {rep.cancellationsLate
+                    ? ` (${rep.cancellationsLate} de última hora)`
+                    : ""}
+                </strong>
+              </div>
+              {avg && (
+                <div>
+                  <small>Avaliação média</small>
+                  <strong>★ {avg.toFixed(1)}</strong>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="subtle">
+              Ainda sem trabalhos concluídos na plataforma. A fiabilidade
+              constrói-se a cada trabalho realizado.
+            </p>
+          )}
+        </div>
+      )}
       {!company && (p.experience || []).length > 0 && (
         <div className="panel" style={{ marginTop: 16 }}>
           <h3 className="section-title">Experiência declarada</h3>
@@ -311,44 +388,19 @@ export function PublicProfile() {
       {!company && (
         <div className="panel" style={{ marginTop: 16 }}>
           <h3 className="section-title">Histórico de trabalhos</h3>
-          {history.length ||
-          claims.filter((c) => c.status !== "verified").length ? (
-            <>
-              {history.map((h) => (
-                <div className="review" key={h.id}>
-                  <div className="row between wrap">
-                    <strong>{h.title}</strong>
-                    <span className="tag green">
-                      {h.source === "external"
-                        ? "Confirmado pela empresa"
-                        : "Verificado"}
-                    </span>
-                  </div>
-                  <p>
-                    {h.companyName} · {dateLabel(h.date)}
-                    {h.hours ? ` · ${h.hours} h` : ""}
-                  </p>
+          {timeline.length ? (
+            timeline.map((t) => (
+              <div className="review" key={t.key}>
+                <div className="row between wrap">
+                  <strong>{t.title}</strong>
+                  <span className={`tag ${t.tone}`}>{t.badge}</span>
                 </div>
-              ))}
-              {claims
-                .filter((c) => c.status !== "verified")
-                .map((c) => (
-                  <div className="review" key={c.id}>
-                    <div className="row between wrap">
-                      <strong>{c.title}</strong>
-                      <span className="tag">
-                        {c.status === "pending"
-                          ? "A aguardar confirmação"
-                          : "Auto-declarado"}
-                      </span>
-                    </div>
-                    <p>
-                      {c.companyName} · {dateLabel(c.date)}
-                      {c.hours ? ` · ${c.hours} h` : ""}
-                    </p>
-                  </div>
-                ))}
-            </>
+                <p>
+                  {t.company} · {dateLabel(t.date)}
+                  {t.hours ? ` · ${t.hours} h` : ""}
+                </p>
+              </div>
+            ))
           ) : (
             <p className="subtle" style={{ marginTop: 16 }}>
               Ainda sem trabalhos no histórico. Os trabalhos concluídos na

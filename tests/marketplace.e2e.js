@@ -370,6 +370,15 @@ test("empresa e profissional: publicar, pesquisar, guardar, contratar, conversar
   await expect(
     company.getByText("Pontual e muito profissional.", { exact: true }),
   ).toBeVisible();
+  await expect(
+    company.getByRole("heading", { name: "Fiabilidade", exact: true }),
+  ).toBeVisible();
+  await expect(
+    company.getByRole("heading", { name: "Histórico de trabalhos", exact: true }),
+  ).toBeVisible();
+  await expect(
+    company.getByText("Verificado", { exact: true }).first(),
+  ).toBeVisible();
   await company.screenshot({
     path: testInfo.outputPath("perfil-desktop.png"),
     fullPage: true,

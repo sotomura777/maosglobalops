@@ -6,6 +6,7 @@ import {
   estimatePay,
   matchesJob,
   isLateCancel,
+  attendanceRate,
 } from "../src/marketplace/model.js";
 test("worker and company must each confirm the agreed stages", () => {
   assert.deepEqual(
@@ -42,6 +43,12 @@ test("late cancellation only applies within 24h of a confirmed shift's start", (
     false,
   );
   assert.equal(isLateCancel({ status: "confirmed" }, start), false);
+});
+test("attendance rate is completed over completed-plus-no-shows, or null when unknown", () => {
+  assert.equal(attendanceRate({ completed: 8, noShows: 2 }), 80);
+  assert.equal(attendanceRate({ completed: 5 }), 100);
+  assert.equal(attendanceRate({}), null);
+  assert.equal(attendanceRate({ noShows: 3 }), 0);
 });
 test("job rejects invalid numbers, dates and incomplete payment conditions", () => {
   const j = {

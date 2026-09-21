@@ -57,6 +57,11 @@ export const today = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
+export function attendanceRate(rep = {}) {
+  const completed = rep.completed || 0;
+  const total = completed + (rep.noShows || 0);
+  return total ? Math.round((completed / total) * 100) : null;
+}
 export function validateJob(j) {
   if (!j.title?.trim() || !j.category || !j.district || !j.location?.trim())
     return "Preenche título, função, distrito e local.";

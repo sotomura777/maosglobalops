@@ -182,6 +182,10 @@ export const getReviews = async (id) =>
       query(collection(db, "reviews"), where("subjectId", "==", id)),
     ),
   );
+export const getReputation = async (workerId) => {
+  const s = await getDoc(doc(db, "reputations", workerId));
+  return s.exists() ? s.data() : {};
+};
 export const getWorkHistory = async (workerId) =>
   rows(
     await getDocs(
