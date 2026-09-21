@@ -261,6 +261,78 @@ test("the same worker cannot concurrently confirm overlapping offers even with s
   assert.equal(results.filter((r) => r.status === "rejected").length, 1);
 });
 
+test("company marks attendance and no-shows, feeding the worker's server-only reputation", async () => {
+  now = Date.parse("2090-01-01T00:00:00Z");
+  const late = { ...job, date: "2090-06-10" };
+  await call("company", { operation: "publish", id: "att", job: late });
+  await call("third", { operation: "apply", jobId: "att", message: "" });
+  await change("company", "att_third", "pending", "accepted");
+  await change("third", "att_third", "accepted", "confirmed");
+  await rejected(
+    call("company", {
+      operation: "transition",
+      id: "att_third",
+      expected: "confirmed",
+      next: "no_show",
+      note: "Não veio",
+    }),
+    /depois da hora/,
+  );
+  now = scheduleOf(late).endMs;
+  await call("company", {
+    operation: "transition",
+    id: "att_third",
+    expected: "confirmed",
+    next: "completion_requested",
+    note: "",
+    attendance: "late",
+    lateMinutes: 20,
+  });
+  const att = (await db.doc("engagements/att_third").get()).data().attendance;
+  assert.equal(att.status, "late");
+  assert.equal(att.lateMinutes, 20);
+  await change("third", "att_third", "completion_requested", "completed");
+  const rep = (await db.doc("reputations/third").get()).data();
+  assert.equal(rep.completed, 1);
+  assert.equal(rep.late, 1);
+
+  now = Date.parse("2090-01-01T00:00:00Z");
+  const miss = { ...job, date: "2090-07-10" };
+  await call("company", { operation: "publish", id: "miss", job: miss });
+  await call("third", { operation: "apply", jobId: "miss", message: "" });
+  await change("company", "miss_third", "pending", "accepted");
+  await change("third", "miss_third", "accepted", "confirmed");
+  assert.equal((await db.doc("jobs/miss").get()).data().filled, 1);
+  await rejected(
+    change("third", "miss_third", "confirmed", "no_show", "x"),
+    /não é permitida/,
+  );
+  now = scheduleOf(miss).startMs;
+  await rejected(
+    call("company", {
+      operation: "transition",
+      id: "miss_third",
+      expected: "confirmed",
+      next: "no_show",
+      note: "",
+    }),
+    /motivo/,
+  );
+  await call("company", {
+    operation: "transition",
+    id: "miss_third",
+    expected: "confirmed",
+    next: "no_show",
+    note: "Não compareceu",
+  });
+  assert.equal(
+    (await db.doc("engagements/miss_third").get()).data().status,
+    "no_show",
+  );
+  assert.equal((await db.doc("jobs/miss").get()).data().filled, 0);
+  assert.equal((await db.doc("reputations/third").get()).data().noShows, 1);
+});
+
 test('legacy migration is dry-run, idempotent, preserves malformed history and detects conflicts', async () => {
   const { spawnSync } = await import('node:child_process');
   await db.doc('jobs/legacy-invalid').set({ title: 'Histórico', status: 'closed', companyId: 'company' });

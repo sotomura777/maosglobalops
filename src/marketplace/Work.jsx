@@ -324,6 +324,8 @@ function EngagementView() {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
   const [next, setNext] = useState("");
+  const [attendance, setAttendance] = useState("present");
+  const [lateMinutes, setLateMinutes] = useState("");
   const [rating, setRating] = useState("5");
   const [reviewText, setReviewText] = useState("");
   const [reviewed, setReviewed] = useState(false);
@@ -487,6 +489,12 @@ function EngagementView() {
             {a.note}
           </p>
         )}
+        {a.attendance?.status === "late" && (
+          <p className="subtle" style={{ marginBottom: 16 }}>
+            <strong>Presença: </strong>
+            chegada com {a.attendance.lateMinutes} min de atraso.
+          </p>
+        )}
         {a.status === "accepted" && (
           <p className="subtle" style={{ marginBottom: 16 }}>
             {company
@@ -523,7 +531,10 @@ function EngagementView() {
             .filter(
               ([state]) =>
                 !(a.status === "confirmed" && state === "cancelled") &&
-                !(state === "completion_requested" && !canComplete),
+                !(
+                  ["completion_requested", "no_show"].includes(state) &&
+                  !canComplete
+                ),
             )
             .map(([state, label]) => (
               <button
@@ -533,6 +544,8 @@ function EngagementView() {
                 onClick={() => {
                   setNext(state);
                   setNote("");
+                  setAttendance("present");
+                  setLateMinutes("");
                 }}
               >
                 {label}
@@ -567,7 +580,21 @@ function EngagementView() {
               setBusy(true);
               setError("");
               try {
-                await transition(a, next, user.uid, note);
+                await transition(
+                  a,
+                  next,
+                  user.uid,
+                  note,
+                  next === "completion_requested"
+                    ? {
+                        attendance,
+                        lateMinutes:
+                          attendance === "late"
+                            ? Number(lateMinutes)
+                            : undefined,
+                      }
+                    : {},
+                );
                 setNext("");
               } catch (e) {
                 setError(e.message);
@@ -586,9 +613,47 @@ function EngagementView() {
                 apresentados nesta oferta.
               </label>
             )}
+            {next === "completion_requested" && (
+              <fieldset
+                className="stack"
+                style={{ border: "none", padding: 0, margin: 0 }}
+              >
+                <legend className="subtle">Como correu a presença?</legend>
+                <label className="row subtle">
+                  <input
+                    type="radio"
+                    name="attendance"
+                    checked={attendance === "present"}
+                    onChange={() => setAttendance("present")}
+                  />
+                  Compareceu a horas
+                </label>
+                <label className="row subtle">
+                  <input
+                    type="radio"
+                    name="attendance"
+                    checked={attendance === "late"}
+                    onChange={() => setAttendance("late")}
+                  />
+                  Chegou atrasado
+                </label>
+                {attendance === "late" && (
+                  <Field label="Minutos de atraso">
+                    <input
+                      type="number"
+                      min="1"
+                      max="1440"
+                      required
+                      value={lateMinutes}
+                      onChange={(e) => setLateMinutes(e.target.value)}
+                    />
+                  </Field>
+                )}
+              </fieldset>
+            )}
             <Field
               label={
-                ["cancelled", "rejected"].includes(next) ||
+                ["cancelled", "rejected", "no_show"].includes(next) ||
                 (next === "confirmed" && a.status === "completion_requested")
                   ? "Motivo (obrigatório)"
                   : "Nota (opcional)"
@@ -596,7 +661,7 @@ function EngagementView() {
             >
               <textarea
                 required={
-                  ["cancelled", "rejected"].includes(next) ||
+                  ["cancelled", "rejected", "no_show"].includes(next) ||
                   (next === "confirmed" && a.status === "completion_requested")
                 }
                 maxLength={1000}

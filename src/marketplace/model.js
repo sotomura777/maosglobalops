@@ -7,6 +7,7 @@ export const STATUS = {
   completed: "Concluído",
   rejected: "Não selecionado",
   cancelled: "Cancelado",
+  no_show: "Faltou",
 };
 export const actionsFor = (status, company) =>
   ({
@@ -25,6 +26,7 @@ export const actionsFor = (status, company) =>
     confirmed: company
       ? [
           ["completion_requested", "Assinalar como realizado"],
+          ["no_show", "Marcar falta"],
           ["cancelled", "Cancelar"],
         ]
       : [["cancelled", "Cancelar"]],

@@ -79,13 +79,14 @@ export async function apply(job, user, profile, message) {
     message: message.trim(),
   });
 }
-export async function transition(a, next, uid, note = "") {
+export async function transition(a, next, uid, note = "", extra = {}) {
   return contract({
     operation: "transition",
     id: a.id,
     expected: a.status,
     next,
     note: note.trim(),
+    ...extra,
   });
 }
 export async function sendMessage(a, uid, text) {

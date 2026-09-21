@@ -17,8 +17,10 @@ test("worker and company must each confirm the agreed stages", () => {
   );
   assert.deepEqual(
     actionsFor("confirmed", true).map((a) => a[0]),
-    ["completion_requested", "cancelled"],
+    ["completion_requested", "no_show", "cancelled"],
   );
+  assert.deepEqual(actionsFor("no_show", true), []);
+  assert.deepEqual(actionsFor("no_show", false), []);
   assert.deepEqual(
     actionsFor("completion_requested", false).map((a) => a[0]),
     ["completed", "confirmed"],
