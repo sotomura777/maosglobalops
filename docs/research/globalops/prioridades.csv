@@ -1,0 +1,19 @@
+﻿Prioridade,Implementação,Principal benefício,Esforço indicativo,Critério de validação
+P0,Separação de dados públicos/privados e migração,Confiança e controlo de exposição,4–8 dias,Conta alheia não lê contactos privados nem provas ocultas
+P0,"Email verificado, recuperação de conta e ligação segura de origem",Identidade e retenção,3–6 dias,Fluxos de recuperação e importação impedem associação não autorizada
+P0,"Capacidade, conflitos, expiração e relógio do servidor",Reservas fiáveis,6–12 dias,Testes concorrentes não excedem vagas nem confirmam sobreposições
+P0,Condições versionadas e eventos de contratação,Clareza em divergências,4–8 dias,Cada confirmação identifica a versão aceite
+P0,"Privacidade, suporte, denúncias e decisões de enquadramento",Operação responsável,"4–8 dias de produto/engenharia, mais revisão especializada",Direitos e incidentes têm responsável e percurso verificável
+P1,Email transacional e lembretes,Respostas fora da app,3–6 dias,Entrega monitorizada; repetição não duplica mensagens
+P1,Favoritos e convites para voltar a contratar,Retenção de empresas,4–7 dias,Empresa cria nova contratação sem refazer a procura
+P1,Disponibilidade por intervalo e calendário,Melhor adequação,5–9 dias,"Horários, meia-noite e fusos tratados corretamente"
+P1,Entrada curta e páginas públicas de ofertas,Ativação e partilha,4–8 dias,Registo regressa à oferta; dados privados permanecem fechados
+P1,Métricas de percurso e painel operacional,Decidir com dados,3–6 dias,Contratações reais distinguem-se de contas de teste
+P1,Empresa com membros e permissões,Utilização por equipas,5–10 dias,Revogar membro não perde histórico nem deixa acesso residual
+P2,Historial portátil e conector robusto,Diferenciação,6–12 dias,"Proveniência, autorização, atualização e revogação verificadas"
+P2,Eventos com várias funções e recorrência,Menos trabalho de publicação,5–10 dias,Cada necessidade mantém capacidade e condições próprias
+P2,PWA e push,Retenção móvel,3–6 dias,Instalação e avisos testados em dispositivos reais
+P2,"Paginação, desempenho, acessibilidade e monitorização",Custo e qualidade,5–10 dias,Metas verificadas no conjunto de percursos críticos
+P2,Valores acordados e recebimentos separados,Clareza financeira,4–8 dias,Concluído nunca implica automaticamente recebido
+P3,Pagamentos de marketplace,Receita transacional,15–30+ dias,"Reconciliação, disputas e custos validados, além da integração técnica"
+P3,Assistente de publicação,Menos escrita,3–6 dias,Utilizadores poupam tempo sem aumentar erros nas condições
