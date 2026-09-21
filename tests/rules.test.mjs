@@ -300,6 +300,19 @@ test("profile trust fields and imported validation badges cannot be self-assigne
   );
   await seed("reputations", "worker", { workerId: "worker", completed: 3 });
   await assertSucceeds(getDoc(doc(worker, "reputations", "worker")));
+  await assertFails(
+    setDoc(doc(worker, "workHistory", "forged"), {
+      workerId: "worker",
+      title: "Mesa",
+      verified: true,
+    }),
+  );
+  await seed("workHistory", "wh1", {
+    workerId: "worker",
+    title: "Mesa",
+    verified: true,
+  });
+  await assertSucceeds(getDoc(doc(worker, "workHistory", "wh1")));
 });
 test("personal logs, saved jobs and notifications remain private", async () => {
   await assertSucceeds(

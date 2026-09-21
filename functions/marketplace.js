@@ -304,8 +304,26 @@ export function createMarketplace(db, clock = Date.now) {
           },
           { merge: true },
         );
-      if (next === "completed")
+      if (next === "completed") {
         bumpReputation({ completed: FieldValue.increment(1) });
+        // Um trabalho concluído torna-se automaticamente histórico verificado.
+        tx.set(
+          db.doc(`workHistory/${snap.id}`),
+          {
+            workerId: a.workerId,
+            companyId: a.companyId,
+            companyName: a.companyName,
+            title: a.title,
+            date: a.agreedTerms?.date || job.date,
+            hours: Math.round(((s.endMs - s.startMs) / 3600000) * 100) / 100,
+            verified: true,
+            source: "app",
+            engagementId: snap.id,
+            createdAt: FieldValue.serverTimestamp(),
+          },
+          { merge: true },
+        );
+      }
       if (next === "no_show")
         bumpReputation({ noShows: FieldValue.increment(1) });
       if (attendance?.status === "late")

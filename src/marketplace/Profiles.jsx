@@ -3,7 +3,8 @@ import { Link, useParams, useBlocker } from "react-router-dom";
 import { useAuth } from "../App";
 import { listPublicProfiles, updateProfile } from "../services/profileService";
 import { listValidationsFor } from "../services/workService";
-import { getPublicProfile, getReviews } from "./service";
+import { getPublicProfile, getReviews, getWorkHistory } from "./service";
+import { dateLabel } from "./model";
 import { CATEGORIES, DISTRICTS, AVAILABILITY, PREFS } from "../constants";
 import { initials } from "../ui";
 import { Heading, Field, Empty, ErrorBox } from "./Layout";
@@ -134,18 +135,25 @@ export function PublicProfile() {
   const [p, setP] = useState(null);
   const [vals, setVals] = useState([]);
   const [reviews, setReviews] = useState([]);
+  const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   useEffect(() => {
     let active = true;
     setLoading(true);
     setError("");
-    Promise.all([getPublicProfile(id), listValidationsFor(id), getReviews(id)])
-      .then(([p, v, r]) => {
+    Promise.all([
+      getPublicProfile(id),
+      listValidationsFor(id),
+      getReviews(id),
+      getWorkHistory(id),
+    ])
+      .then(([p, v, r, h]) => {
         if (active) {
           setP(p);
           setVals(v);
           setReviews(r);
+          setHistory(h);
         }
       })
       .catch(() => {
@@ -286,6 +294,34 @@ export function PublicProfile() {
               </p>
             </div>
           ))}
+        </div>
+      )}
+      {!company && (
+        <div className="panel" style={{ marginTop: 16 }}>
+          <h3 className="section-title">Histórico de trabalhos</h3>
+          {history.length ? (
+            history.map((h) => (
+              <div className="review" key={h.id}>
+                <div className="row between wrap">
+                  <strong>{h.title}</strong>
+                  <span className="tag green">
+                    {h.source === "external"
+                      ? "Confirmado pela empresa"
+                      : "Verificado"}
+                  </span>
+                </div>
+                <p>
+                  {h.companyName} · {dateLabel(h.date)}
+                  {h.hours ? ` · ${h.hours} h` : ""}
+                </p>
+              </div>
+            ))
+          ) : (
+            <p className="subtle" style={{ marginTop: 16 }}>
+              Ainda sem trabalhos no histórico. Os trabalhos concluídos na
+              plataforma aparecem aqui automaticamente.
+            </p>
+          )}
         </div>
       )}
       <div className="panel" style={{ marginTop: 16 }}>

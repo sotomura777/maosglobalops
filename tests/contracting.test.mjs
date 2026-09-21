@@ -295,6 +295,11 @@ test("company marks attendance and no-shows, feeding the worker's server-only re
   const rep = (await db.doc("reputations/third").get()).data();
   assert.equal(rep.completed, 1);
   assert.equal(rep.late, 1);
+  const hist = (await db.doc("workHistory/att_third").get()).data();
+  assert.equal(hist.verified, true);
+  assert.equal(hist.source, "app");
+  assert.equal(hist.workerId, "third");
+  assert.ok(hist.hours > 0);
 
   now = Date.parse("2090-01-01T00:00:00Z");
   const miss = { ...job, date: "2090-07-10" };

@@ -181,6 +181,12 @@ export const getReviews = async (id) =>
       query(collection(db, "reviews"), where("subjectId", "==", id)),
     ),
   );
+export const getWorkHistory = async (workerId) =>
+  rows(
+    await getDocs(
+      query(collection(db, "workHistory"), where("workerId", "==", workerId)),
+    ),
+  ).sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 export const review = (a, uid, rating, text) =>
   setDoc(doc(db, "reviews", `${a.id}_${uid}`), {
     engagementId: a.id,

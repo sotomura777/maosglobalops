@@ -64,6 +64,8 @@ service cloud.firestore {
     match /validations/{id} { allow read: if self(resource.data.workerId) || (signed() && get(/databases/$(database)/documents/publicProfiles/$(resource.data.workerId)).data.public == true); }
     // Contadores de fiabilidade (faltas, atrasos, cancelamentos, concluídos). Só o servidor escreve.
     match /reputations/{uid} { allow read: if self(uid) || (signed() && get(/databases/$(database)/documents/publicProfiles/$(uid)).data.public == true); }
+    // Histórico de trabalhos verificados. Escrito só pelo servidor ao concluir ou ao aprovar.
+    match /workHistory/{id} { allow read: if self(resource.data.workerId) || (signed() && get(/databases/$(database)/documents/publicProfiles/$(resource.data.workerId)).data.public == true); }
     match /channels/{channelId} {
       allow read: if signed();
       allow create, update: if signed() && (
