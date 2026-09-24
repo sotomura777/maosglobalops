@@ -502,6 +502,22 @@ test("after the shift starts a confirmed job can no longer be cancelled", async 
   await change("company", "started_other", "confirmed", "no_show", "Não veio");
 });
 
+test("daily quotas stop floods without charging retries", async () => {
+  now = Date.parse("2093-01-01T09:00:00Z");
+  await db.doc("profiles/busy-co").set({ kind: "company", name: "Busy" });
+  const publish = (n) =>
+    call("busy-co", { operation: "publish", id: `flood-${n}`, job: { ...job, date: "2093-02-01" } });
+  for (let n = 0; n < 20; n++) await publish(n);
+  // Repeating a publication that already exists is free.
+  await publish(0);
+  await rejected(publish(20), /limite diário/);
+  assert.equal((await db.doc("jobs/flood-20").get()).exists, false);
+  // A new day brings a new allowance.
+  now = Date.parse("2093-01-02T09:00:00Z");
+  await publish(20);
+  assert.equal((await db.doc("quotas/busy-co_2093-01-01").get()).data().publish, 20);
+});
+
 test('legacy migration is dry-run, idempotent, preserves malformed history and detects conflicts', async () => {
   const { spawnSync } = await import('node:child_process');
   await db.doc('jobs/legacy-invalid').set({ title: 'Histórico', status: 'closed', companyId: 'company' });

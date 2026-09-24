@@ -11,6 +11,8 @@ import { deliver, engagementNotice, resendSender, sendReminders } from "./mail.j
 initializeApp();
 const options = {
   region: "europe-west1",
+  // Ligar só depois de ver nas métricas que os clientes legítimos já enviam token (functions/.env.maosglobalops).
+  enforceAppCheck: process.env.ENFORCE_APP_CHECK === "true",
   maxInstances: 3,
   minInstances: 0,
   timeoutSeconds: 60,

@@ -19,6 +19,8 @@ export const id = (value) => {
   return value;
 };
 const occupied = new Set(["confirmed", "completion_requested", "completed"]);
+// Limites diários por conta: travam abuso e custos sem afetar o uso normal.
+export const QUOTAS = { publish: 20, apply: 60, endorse: 60 };
 const actions = {
   company: {
     pending: ["accepted", "rejected"],
@@ -82,6 +84,15 @@ function validatedJob(input, now) {
 }
 // Dependency injection is only for tests; the deployed entry always uses server time.
 export function createMarketplace(db, clock = Date.now) {
+  // Lê o contador dentro da transação (antes das escritas) e devolve a escrita que o incrementa.
+  const spend = async (tx, uid, op) => {
+    const day = new Date(clock()).toISOString().slice(0, 10);
+    const ref = db.doc(`quotas/${uid}_${day}`);
+    const used = (await tx.get(ref)).data()?.[op] || 0;
+    if (used >= QUOTAS[op])
+      fail("Atingiste o limite diário desta ação. Tenta novamente amanhã.", "resource-exhausted");
+    return () => tx.set(ref, { uid, day, [op]: used + 1 }, { merge: true });
+  };
   return async ({ auth, data }) => {
     if (!auth?.uid) fail("Entra na tua conta.", "unauthenticated");
     const uid = auth.uid;
@@ -111,6 +122,7 @@ export function createMarketplace(db, clock = Date.now) {
           return;
         }
         const job = validatedJob(data.job, clock());
+        (await spend(tx, uid, "publish"))();
         tx.create(ref, {
           ...job,
           companyId: uid,
@@ -143,6 +155,7 @@ export function createMarketplace(db, clock = Date.now) {
           fail("Esta oferta já terminou ou foi encerrada.");
         if ((job.filled || 0) >= job.vacancies)
           fail("As vagas desta oferta já foram preenchidas.");
+        (await spend(tx, uid, "apply"))();
         tx.create(ref, {
           jobId,
           companyId: job.companyId,
@@ -183,6 +196,7 @@ export function createMarketplace(db, clock = Date.now) {
             "permission-denied",
           );
         if (claim.status !== "pending") return; // Repetição do mesmo pedido é inócua.
+        (await spend(tx, uid, "endorse"))();
         if (approve) {
           const hours = claim.hours ?? 0;
           if (
