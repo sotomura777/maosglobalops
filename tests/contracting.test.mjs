@@ -422,8 +422,72 @@ test("companies confirm or reject a worker's declared past job", async () => {
     status: "pending",
   });
   await endorse("company", "worker", "past2", "reject");
-  assert.equal((await claim2.get()).data().status, "self_declared");
+  assert.equal((await claim2.get()).data().status, "rejected");
   assert.equal((await db.doc("workHistory/worker_past2").get()).exists, false);
+  // Hours and dates outside sane bounds are never copied into verified history.
+  for (const [cid, extra] of [
+    ["bad-hours", { hours: 1e9 }],
+    ["neg-hours", { hours: -3 }],
+    ["bad-date", { date: "ontem" }],
+  ]) {
+    await db.doc(`profiles/worker/historyClaims/${cid}`).set({
+      title: "Bar",
+      companyName: "Festival X",
+      companyId: "company",
+      status: "pending",
+      ...extra,
+    });
+    await rejected(endorse("company", "worker", cid, "approve"), /inválido/);
+    assert.equal((await db.doc(`workHistory/worker_${cid}`).get()).exists, false);
+  }
+});
+
+test("a late arrival counts once, using the company's final mark", async () => {
+  now = Date.parse("2091-01-01T00:00:00Z");
+  const shift = { ...job, date: "2091-03-10" };
+  await call("company", { operation: "publish", id: "loop", job: shift });
+  await call("other", { operation: "apply", jobId: "loop", message: "" });
+  await change("company", "loop_other", "pending", "accepted");
+  await change("other", "loop_other", "accepted", "confirmed");
+  now = scheduleOf(shift).endMs;
+  const request = (attendance) =>
+    call("company", {
+      operation: "transition",
+      id: "loop_other",
+      expected: "confirmed",
+      next: "completion_requested",
+      note: "",
+      attendance,
+      lateMinutes: attendance === "late" ? 30 : undefined,
+    });
+  // Company marks late twice while the worker disputes the request in between.
+  await request("late");
+  await change("other", "loop_other", "completion_requested", "confirmed", "Cheguei a horas");
+  await request("late");
+  const rep = async () => (await db.doc("reputations/other").get()).data() || {};
+  assert.equal((await rep()).late || 0, 0);
+  await change("other", "loop_other", "completion_requested", "completed");
+  assert.equal((await rep()).late, 1);
+});
+
+test("after the shift starts a confirmed job can no longer be cancelled", async () => {
+  now = Date.parse("2092-01-01T00:00:00Z");
+  const shift = { ...job, date: "2092-03-10" };
+  await call("company", { operation: "publish", id: "started", job: shift });
+  await call("other", { operation: "apply", jobId: "started", message: "" });
+  await change("company", "started_other", "pending", "accepted");
+  await change("other", "started_other", "accepted", "confirmed");
+  now = scheduleOf(shift).startMs + 60000;
+  await rejected(
+    change("other", "started_other", "confirmed", "cancelled", "Não posso"),
+    /já começou/,
+  );
+  await rejected(
+    change("company", "started_other", "confirmed", "cancelled", "Já não"),
+    /já começou/,
+  );
+  // The company can still record the absence.
+  await change("company", "started_other", "confirmed", "no_show", "Não veio");
 });
 
 test('legacy migration is dry-run, idempotent, preserves malformed history and detects conflicts', async () => {

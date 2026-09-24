@@ -407,6 +407,9 @@ function EngagementView() {
   const agreed = a.agreedTerms;
   const endMs = agreed?.endMs || timestampMillis(job?.endAt);
   const canComplete = endMs > 0 && endMs <= Math.max(clock, Date.now());
+  // Depois do início já não se cancela: só falta ou conclusão (o servidor também o impede).
+  const startMs = agreed?.startMs || timestampMillis(job?.startAt);
+  const started = startMs > 0 && startMs <= Math.max(clock, Date.now());
   return (
     <>
       <Link className="quiet" to="/app/meus-trabalhos">
@@ -553,7 +556,7 @@ function EngagementView() {
               </button>
             ))}
         </div>
-        {a.status === "confirmed" && (
+        {a.status === "confirmed" && !started && (
           <details className="secondary-actions">
             <summary>Mais opções</summary>
             <button

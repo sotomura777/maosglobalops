@@ -212,7 +212,8 @@ export function PublicProfile() {
       tone: "green",
     })),
     ...claims
-      .filter((c) => c.status !== "verified")
+      // Um pedido recusado pela empresa não aparece como declaração no perfil público.
+      .filter((c) => !["verified", "rejected"].includes(c.status))
       .map((c) => ({
         key: `c-${c.id}`,
         title: c.title,
@@ -523,7 +524,9 @@ function PastJobsEditor({ uid, hidden }) {
                 ? "Confirmado pela empresa"
                 : c.status === "pending"
                   ? "A aguardar confirmação"
-                  : "Auto-declarado"}
+                  : c.status === "rejected"
+                    ? "Recusado pela empresa (não aparece no perfil)"
+                    : "Auto-declarado"}
             </p>
           </div>
           {c.status !== "verified" && (

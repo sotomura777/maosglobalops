@@ -69,7 +69,7 @@ export default function ChannelsPage() {
               <div key={p.id}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
                   <span style={{ font: "700 13px/1 'Public Sans', sans-serif", color: p.authorKind === 'company' ? 'var(--gold)' : 'var(--text)' }}>{p.authorName}</span>
-                  <span style={{ font: `400 10px/1 ${MONO}`, color: 'var(--text-4)' }}>{p.createdAt ? new Date(p.createdAt).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                  <span style={{ font: `400 10px/1 ${MONO}`, color: 'var(--text-4)' }}>{p.createdAt ? (p.createdAt.toDate?.() ?? new Date(p.createdAt)).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}</span>
                 </div>
                 <div style={{ font: "400 13px/1.55 'Public Sans', sans-serif", color: 'var(--text-2)', marginTop: 5, whiteSpace: 'pre-wrap' }}>{p.text}</div>
               </div>

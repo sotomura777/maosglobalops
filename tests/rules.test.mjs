@@ -343,6 +343,75 @@ test("workers declare past jobs but can never self-verify or edit a verified one
   await assertFails(updateDoc(claim("hv"), { title: "Alterado" }));
   await assertFails(deleteDoc(claim("hv")));
 });
+test("declared jobs are frozen once sent and hours/dates stay within bounds", async () => {
+  const base = {
+    title: "Bar",
+    companyName: "Festival X",
+    status: "self_declared",
+    createdAt: "2026-09-14",
+  };
+  const claim = (id) => doc(worker, "profiles", "worker", "historyClaims", id);
+  // A request the company may be looking at cannot be rewritten behind its back.
+  await assertSucceeds(
+    setDoc(claim("sent"), { ...base, companyId: "company", status: "pending", hours: 6 }),
+  );
+  await assertFails(updateDoc(claim("sent"), { title: "Chefe de sala", hours: 900 }));
+  await assertSucceeds(deleteDoc(claim("sent")));
+  // Out-of-range hours and malformed dates are refused.
+  await assertFails(setDoc(claim("neg"), { ...base, hours: -1 }));
+  await assertFails(setDoc(claim("huge"), { ...base, hours: 1e308 }));
+  await assertFails(setDoc(claim("date"), { ...base, date: "ontem" }));
+  await assertSucceeds(setDoc(claim("month"), { ...base, date: "2024-06", hours: 40 }));
+  await assertSucceeds(setDoc(claim("day"), { ...base, date: "2024-06-03" }));
+  // Only the server records a rejection; the worker can remove it but not revive it.
+  await assertFails(setDoc(claim("rej"), { ...base, status: "rejected" }));
+  await seed("profiles/worker/historyClaims", "rejected", {
+    ...base,
+    companyId: "company",
+    status: "rejected",
+  });
+  await assertFails(updateDoc(claim("rejected"), { status: "pending" }));
+  await assertSucceeds(deleteDoc(claim("rejected")));
+});
+test("topic channels keep fixed names and posts carry the server time", async () => {
+  await assertFails(
+    setDoc(doc(worker, "channels", "t-porto"), {
+      type: "topic",
+      name: "# vandalizado",
+      createdAt: serverTimestamp(),
+    }),
+  );
+  await assertSucceeds(
+    setDoc(doc(worker, "channels", "t-porto"), {
+      type: "topic",
+      name: "# porto",
+      createdAt: serverTimestamp(),
+    }),
+  );
+  // Once created, nobody renames it.
+  await assertFails(updateDoc(doc(worker, "channels", "t-porto"), { name: "# porto" }));
+  // Earlier tests may rename the profiles; the post must carry the current name.
+  const names = {};
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    for (const uid of ["worker", "stranger"])
+      names[uid] = (await getDoc(doc(ctx.firestore(), "profiles", uid))).data().name;
+  });
+  const post = (db, createdAt) => {
+    const uid = db === worker ? "worker" : "stranger";
+    return setDoc(doc(db, "channels", "t-porto", "posts", "p" + Math.random()), {
+      authorId: uid,
+      authorName: names[uid],
+      authorKind: "worker",
+      text: "Olá",
+      createdAt,
+    });
+  };
+  // A forged far-future date would pin the post to the top.
+  await assertFails(post(worker, "9999-12-31T00:00:00Z"));
+  await assertSucceeds(post(worker, serverTimestamp()));
+  // Unverified accounts cannot post.
+  await assertFails(post(stranger, serverTimestamp()));
+});
 test("a company only reads the pending approval requests addressed to it", async () => {
   await seed("profiles/worker/historyClaims", "req", {
     title: "Bar",

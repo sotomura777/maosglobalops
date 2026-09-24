@@ -174,6 +174,13 @@ export function createMarketplace(db, clock = Date.now) {
           fail("Pedido indisponível.", "permission-denied");
         if (claim.status !== "pending") return; // Repetição do mesmo pedido é inócua.
         if (approve) {
+          const hours = claim.hours ?? 0;
+          if (
+            typeof hours !== "number" ||
+            !(hours >= 0 && hours <= 5000) ||
+            !/^(\d{4}-\d{2}(-\d{2})?)?$/.test(claim.date ?? "")
+          )
+            fail("Pedido inválido: revê as horas e a data.", "invalid-argument");
           tx.update(claimRef, { status: "verified" });
           tx.set(
             db.doc(`workHistory/${workerId}_${claimId}`),
@@ -183,7 +190,7 @@ export function createMarketplace(db, clock = Date.now) {
               companyName: c.data().name,
               title: claim.title,
               date: claim.date || "",
-              hours: Number(claim.hours) || 0,
+              hours,
               verified: true,
               source: "external",
               approvedBy: uid,
@@ -192,7 +199,7 @@ export function createMarketplace(db, clock = Date.now) {
             { merge: true },
           );
         } else {
-          tx.update(claimRef, { status: "self_declared" });
+          tx.update(claimRef, { status: "rejected" });
         }
       });
       return { ok: true };
@@ -248,6 +255,11 @@ export function createMarketplace(db, clock = Date.now) {
       if (next === "completion_requested" || next === "completed") {
         if (s.endMs > now)
           fail("Só é possível concluir depois do fim do horário combinado.");
+      }
+      if (a.status === "confirmed" && next === "cancelled") {
+        const startMs = a.agreedTerms?.startMs ?? schedule(job).startMs;
+        if (startMs <= now)
+          fail("O trabalho já começou: regista a falta ou pede a conclusão.");
       }
       if (next === "no_show" && s.startMs > now)
         fail("Só podes marcar falta depois da hora de início do trabalho.");
@@ -345,7 +357,13 @@ export function createMarketplace(db, clock = Date.now) {
           { merge: true },
         );
       if (next === "completed") {
-        bumpReputation({ completed: FieldValue.increment(1) });
+        // O atraso conta uma vez, com a marcação final da empresa, quando o trabalho fica concluído.
+        bumpReputation({
+          completed: FieldValue.increment(1),
+          ...(a.attendance?.status === "late"
+            ? { late: FieldValue.increment(1) }
+            : {}),
+        });
         // Um trabalho concluído torna-se automaticamente histórico verificado.
         tx.set(
           db.doc(`workHistory/${snap.id}`),
@@ -366,8 +384,6 @@ export function createMarketplace(db, clock = Date.now) {
       }
       if (next === "no_show")
         bumpReputation({ noShows: FieldValue.increment(1) });
-      if (attendance?.status === "late")
-        bumpReputation({ late: FieldValue.increment(1) });
       // Só o cancelamento do trabalhador depois de confirmado conta contra ele.
       if (a.status === "confirmed" && next === "cancelled" && role === "worker") {
         const startMs = a.agreedTerms?.startMs ?? schedule(job).startMs;
