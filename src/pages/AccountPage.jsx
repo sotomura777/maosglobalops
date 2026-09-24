@@ -6,10 +6,11 @@ import {
   reload,
 } from "firebase/auth";
 import { auth } from "../services/firebase";
+import { updateProfile } from "../services/profileService";
 import { useAuth } from "../App";
 
 export default function AccountPage({ recovery = false }) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [email, setEmail] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -129,6 +130,27 @@ export default function AccountPage({ recovery = false }) {
                 </button>
               </div>
             </>
+          )}
+          {profile && (
+            <label className="row" style={{ gap: 10, margin: "18px 0" }}>
+              <input
+                type="checkbox"
+                disabled={busy}
+                checked={profile.emailNotifications !== false}
+                onChange={(e) => {
+                  const on = e.target.checked;
+                  run(async () => {
+                    await updateProfile(user.uid, { emailNotifications: on });
+                    setMessage(
+                      on
+                        ? "Vais receber avisos por email."
+                        : "Deixas de receber avisos por email. Continuam a aparecer na app.",
+                    );
+                  });
+                }}
+              />
+              Receber avisos por email (candidaturas, confirmações e lembretes)
+            </label>
           )}
           <p>
             <Link to="/recuperar-password">

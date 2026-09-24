@@ -28,8 +28,9 @@ service cloud.firestore {
         request.resource.data.kind in ['worker','company'] && request.resource.data.gdprConsent == true &&
         request.resource.data.email == request.auth.token.email && profileEdit();
       allow update: if self(uid) && profileEdit() && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-        'name','headline','bio','district','phone','languages','categories','prefs','availability','public','experience','companyLegalName','website','updatedAt','importExperience'
+        'name','headline','bio','district','phone','languages','categories','prefs','availability','public','experience','companyLegalName','website','updatedAt','importExperience','emailNotifications'
       ]) && request.resource.data.get('importExperience',false) is bool &&
+        request.resource.data.get('emailNotifications',true) is bool &&
         (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['public']) ||
           getAfter(/databases/$(database)/documents/publicProfiles/$(uid)).data.public == request.resource.data.public);
       match /worklog/{entryId} {

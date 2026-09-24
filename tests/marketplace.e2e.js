@@ -457,6 +457,16 @@ test("empresa e profissional: publicar, pesquisar, guardar, contratar, conversar
     path: testInfo.outputPath("inicio-mobile.png"),
     fullPage: true,
   });
+  // Each contracting step queued an email; in the emulator nothing leaves (dry run).
+  const mail = await company.request.get(
+    "http://127.0.0.1:8080/v1/projects/demo-globalops/databases/(default)/documents/mailLog?pageSize=100",
+    { headers: { Authorization: "Bearer owner" } },
+  );
+  const statuses = ((await mail.json()).documents || []).map(
+    (d) => d.fields.status.stringValue,
+  );
+  expect(statuses.length).toBeGreaterThanOrEqual(4);
+  expect(statuses.every((s) => s === "dry_run")).toBe(true);
   expect(errors).toEqual([]);
   await companyContext.close();
   await workerContext.close();

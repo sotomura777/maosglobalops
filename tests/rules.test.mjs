@@ -412,6 +412,12 @@ test("topic channels keep fixed names and posts carry the server time", async ()
   // Unverified accounts cannot post.
   await assertFails(post(stranger, serverTimestamp()));
 });
+test("the owner switches email notices on or off, and nobody else can", async () => {
+  await assertSucceeds(updateDoc(doc(worker, "profiles", "worker"), { emailNotifications: false }));
+  await assertFails(updateDoc(doc(worker, "profiles", "worker"), { emailNotifications: "no" }));
+  await assertFails(updateDoc(doc(company, "profiles", "worker"), { emailNotifications: true }));
+  await assertSucceeds(updateDoc(doc(worker, "profiles", "worker"), { emailNotifications: true }));
+});
 test("company validation and suspension are set only by the administration", async () => {
   await assertFails(
     setDoc(doc(company, "companyStatus", "company"), { verification: "verified" }),

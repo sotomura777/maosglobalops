@@ -2,8 +2,12 @@ import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
+import { onDocumentWritten } from "firebase-functions/v2/firestore";
+import { onSchedule } from "firebase-functions/v2/scheduler";
+import { defineSecret } from "firebase-functions/params";
 import { createMarketplace } from "./marketplace.js";
 import { createAdmin } from "./admin.js";
+import { deliver, engagementNotice, resendSender, sendReminders } from "./mail.js";
 initializeApp();
 const options = {
   region: "europe-west1",
@@ -32,4 +36,45 @@ export const contracting = onCall(
 export const admin = onCall(
   { ...options, maxInstances: 1 },
   guarded(createAdmin(getFirestore(), getAuth())),
+);
+
+// Emails (Resend). A chave vive no Secret Manager: firebase functions:secrets:set RESEND_API_KEY
+const RESEND_API_KEY = defineSecret("RESEND_API_KEY");
+// Remetente e endereço da app: functions/.env.maosglobalops (MAIL_FROM=..., APP_URL=...).
+const MAIL_FROM = process.env.MAIL_FROM || "GlobalOps <avisos@example.com>";
+const APP_URL = process.env.APP_URL || "https://maosglobalops.web.app";
+// Nos emuladores nunca sai nenhum email: fica só o registo em modo ensaio.
+const sender = () =>
+  resendSender(
+    process.env.FUNCTIONS_EMULATOR === "true" ? "" : RESEND_API_KEY.value(),
+    MAIL_FROM,
+  );
+export const engagementMail = onDocumentWritten(
+  {
+    document: "engagements/{id}",
+    region: "europe-west1",
+    maxInstances: 3,
+    secrets: [RESEND_API_KEY],
+  },
+  async (event) => {
+    const notice = engagementNotice(
+      event.data?.before?.data(),
+      event.data?.after?.data(),
+      event.params.id,
+      APP_URL,
+    );
+    // O id do evento é estável entre repetições, por isso o mesmo aviso não sai duas vezes.
+    if (notice) await deliver(getFirestore(), `evt-${event.id}`, notice, sender());
+  },
+);
+export const shiftReminders = onSchedule(
+  {
+    schedule: "0 18 * * *",
+    timeZone: "Europe/Lisbon",
+    region: "europe-west1",
+    secrets: [RESEND_API_KEY],
+  },
+  async () => {
+    await sendReminders(getFirestore(), sender(), Date.now(), APP_URL);
+  },
 );
