@@ -22,6 +22,8 @@ async function verifyEmail(page, email) {
     page.getByText("Email confirmado.", { exact: true }),
   ).toBeVisible();
 }
+// Shared between the marketplace journey and the administration journey below.
+const shared = {};
 test.beforeAll(async ({ request }) => {
   const result = await request.delete(
     "http://127.0.0.1:8080/emulator/v1/projects/demo-globalops/databases/(default)/documents",
@@ -55,6 +57,7 @@ test("empresa e profissional: publicar, pesquisar, guardar, contratar, conversar
   company.on("pageerror", (e) => errors.push(e.message));
   worker.on("pageerror", (e) => errors.push(e.message));
   const suffix = Date.now();
+  shared.workerEmail = `ana-${suffix}@example.com`;
   await company.goto("/registar-empresa");
   await company.getByLabel("Nome da empresa").fill("Aurora Eventos");
   await company
@@ -380,8 +383,9 @@ test("empresa e profissional: publicar, pesquisar, guardar, contratar, conversar
   await expect(
     company.getByRole("heading", { name: "Histórico de trabalhos", exact: true }),
   ).toBeVisible();
+  // The company has not been validated by the administration yet.
   await expect(
-    company.getByText("Verificado", { exact: true }).first(),
+    company.getByText("Concluído na app", { exact: true }).first(),
   ).toBeVisible();
   await company.screenshot({
     path: testInfo.outputPath("perfil-desktop.png"),
@@ -456,4 +460,89 @@ test("empresa e profissional: publicar, pesquisar, guardar, contratar, conversar
   expect(errors).toEqual([]);
   await companyContext.close();
   await workerContext.close();
+});
+
+test("administração: estatísticas, validação de empresas e suspensão de contas", async ({
+  browser,
+  request,
+}, testInfo) => {
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+    locale: "pt-PT",
+  });
+  const page = await context.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  const email = `admin-${Date.now()}@example.com`;
+  await page.goto("/registar");
+  await page.getByLabel("Nome", { exact: true }).fill("Pedro Admin");
+  await page.getByLabel("Email", { exact: true }).fill(email);
+  await page.getByLabel("Password (mín. 8)").fill(pass);
+  await page.getByRole("checkbox").check();
+  await page.getByRole("button", { name: "Criar perfil", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Olá, Pedro." })).toBeVisible();
+  await verifyEmail(page, email);
+  // Without the claim the area stays closed.
+  await page.goto("/app/admin");
+  await expect(page.getByRole("heading", { name: "Acesso reservado" })).toBeVisible();
+  // Same effect as scripts/set-admin.mjs, through the Auth emulator.
+  const owner = { Authorization: "Bearer owner" };
+  const lookup = await request.post(
+    "http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/projects/demo-globalops/accounts:lookup",
+    { headers: owner, data: { email: [email] } },
+  );
+  const { localId } = (await lookup.json()).users[0];
+  const claim = await request.post(
+    "http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/projects/demo-globalops/accounts:update",
+    { headers: owner, data: { localId, customAttributes: JSON.stringify({ admin: true }) } },
+  );
+  expect(claim.ok()).toBe(true);
+  // A new session carries the new claim.
+  await page.getByRole("button", { name: "Sair" }).click();
+  await expect(page).not.toHaveURL(/\/app/);
+  await page.goto("/entrar");
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill(pass);
+  await page.getByRole("button", { name: "Entrar" }).click();
+  await expect(page.getByRole("heading", { name: "Olá, Pedro." })).toBeVisible();
+  await page.getByRole("link", { name: "Administração" }).first().click();
+  await expect(page.getByRole("heading", { name: "Painel da plataforma" })).toBeVisible();
+  await expect(page.locator(".stat").filter({ hasText: "Empresas por validar" })).toContainText("1");
+  await page.screenshot({ path: testInfo.outputPath("admin-estatisticas.png"), fullPage: true });
+
+  await page.getByRole("tab", { name: "Empresas" }).click();
+  const aurora = page.locator(".panel").filter({ hasText: "Aurora Eventos" });
+  await aurora.getByLabel("Nota interna (fica só na administração)").fill("NIF confirmado");
+  await aurora.getByRole("button", { name: "Validar empresa" }).click();
+  await expect(page.getByText("Não há empresas à espera de validação.")).toBeVisible();
+  await page.getByRole("button", { name: /^Validadas/ }).click();
+  await expect(aurora.getByText("Validada", { exact: true })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("admin-empresas.png"), fullPage: true });
+  await aurora.getByRole("link", { name: "Ver perfil público →" }).click();
+  await expect(page.getByText("Empresa validada", { exact: true })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("empresa-validada.png"), fullPage: true });
+
+  await page.goto("/app/admin?tab=accounts");
+  await page.getByLabel("Email da conta").fill(shared.workerEmail);
+  await page.getByRole("button", { name: "Procurar conta" }).click();
+  await expect(page.getByText("Ana Silva", { exact: true })).toBeVisible();
+  const suspend = page.getByRole("button", { name: "Suspender conta" });
+  await expect(suspend).toBeDisabled();
+  await page.getByLabel("Motivo da suspensão (obrigatório, fica registado)").fill("Teste de moderação");
+  await suspend.click();
+  await page.getByRole("button", { name: "Sim, suspender agora" }).click();
+  await expect(page.getByText("Suspensa", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Reativar conta" }).click();
+  await expect(page.getByText("Ativa", { exact: true })).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/app/admin");
+  await expect(page.locator(".stat").first()).toBeVisible();
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > window.innerWidth + 1,
+  );
+  expect(overflow, "Overflow at /app/admin").toBe(false);
+  await page.screenshot({ path: testInfo.outputPath("admin-mobile.png"), fullPage: true });
+  expect(errors).toEqual([]);
+  await context.close();
 });

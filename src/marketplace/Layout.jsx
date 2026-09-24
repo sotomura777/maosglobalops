@@ -4,6 +4,7 @@ import { useAuth } from "../App";
 import { signOut } from "../services/authService";
 import { useMarket } from "./context";
 import { initials } from "../ui";
+import { useIsAdmin } from "./Admin";
 export function Icon({ name, ...props }) {
   const paths = {
     home: "M3 10 12 3l9 7v10H6V10m3 10v-7h6v7",
@@ -17,6 +18,7 @@ export function Icon({ name, ...props }) {
     arrow: "M5 12h14M13 6l6 6-6 6",
     bookmark: "M6 3h12v18l-6-4-6 4z",
     check: "M4 12l5 5L20 6",
+    shield: "M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z",
   };
   return (
     <svg
@@ -39,6 +41,7 @@ export default function Layout() {
   const { profile, user } = useAuth();
   const { unread, unreadMessages, approvals = [], error } = useMarket();
   const company = profile.kind === "company";
+  const admin = useIsAdmin();
   const nav = [
     ["/app", "home", "Início"],
     [
@@ -59,6 +62,11 @@ export default function Layout() {
           <small>mercado de trabalho</small>
         </Link>
         <div className="header-actions">
+          {admin && (
+            <Link className="icon-button" to="/app/admin" aria-label="Administração">
+              <Icon name="shield" />
+            </Link>
+          )}
           <Link
             className="icon-button"
             to="/app/notificacoes"
@@ -106,6 +114,7 @@ export default function Layout() {
             <Link to="/app/ganhos">Horas e ganhos</Link>
             <Link to="/app/canais">Comunidade</Link>
             <Link to="/app/ranking">Ranking</Link>
+            {admin && <Link to="/app/admin">Administração</Link>}
           </div>
           <div className="sidebar-note">
             O próximo trabalho

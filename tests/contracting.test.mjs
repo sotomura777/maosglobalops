@@ -298,6 +298,8 @@ test("company marks attendance and no-shows, feeding the worker's server-only re
   const hist = (await db.doc("workHistory/att_third").get()).data();
   assert.equal(hist.verified, true);
   assert.equal(hist.source, "app");
+  // Completed with a company the administration has not validated yet.
+  assert.equal(hist.companyVerified, false);
   assert.equal(hist.workerId, "third");
   assert.ok(hist.hours > 0);
 
@@ -404,6 +406,15 @@ test("companies confirm or reject a worker's declared past job", async () => {
     endorse("company", "worker", "other-co", "approve"),
     /indisponível/,
   );
+  // An unvalidated company cannot verify anyone's history (fake "Sonae" accounts).
+  await rejected(endorse("company", "worker", "past1", "approve"), /validada/);
+  assert.equal((await claimRef.get()).data().status, "pending");
+  await db.doc("companyStatus/company").set({ verification: "verified" });
+  // Nor can a validated company whose session email is unverified.
+  await rejected(
+    call("company", { operation: "endorse", workerId: "worker", claimId: "past1", decision: "approve" }, false),
+    /Confirma o email/,
+  );
   // The targeted company confirms: the claim is verified and public history is written.
   await endorse("company", "worker", "past1", "approve");
   assert.equal((await claimRef.get()).data().status, "verified");
@@ -411,6 +422,7 @@ test("companies confirm or reject a worker's declared past job", async () => {
   assert.equal(wh.verified, true);
   assert.equal(wh.source, "external");
   assert.equal(wh.approvedBy, "company");
+  assert.equal(wh.companyVerified, true);
   // Repeating the decision is inert.
   await endorse("company", "worker", "past1", "approve");
   // Rejection drops the request back to self-declared and writes no history.

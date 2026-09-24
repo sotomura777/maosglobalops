@@ -412,6 +412,22 @@ test("topic channels keep fixed names and posts carry the server time", async ()
   // Unverified accounts cannot post.
   await assertFails(post(stranger, serverTimestamp()));
 });
+test("company validation and suspension are set only by the administration", async () => {
+  await assertFails(
+    setDoc(doc(company, "companyStatus", "company"), { verification: "verified" }),
+  );
+  await seed("companyStatus", "company", { verification: "verified" });
+  // Any signed-in user can read the badge.
+  await assertSucceeds(getDoc(doc(worker, "companyStatus", "company")));
+  await assertFails(
+    updateDoc(doc(company, "companyStatus", "company"), { verification: "verified" }),
+  );
+  await assertFails(updateDoc(doc(worker, "profiles", "worker"), { suspended: false }));
+  await assertFails(
+    updateDoc(doc(company, "profiles", "company"), { companyVerificationNote: "ok" }),
+  );
+  await assertFails(getDocs(collection(worker, "adminLog")));
+});
 test("a company only reads the pending approval requests addressed to it", async () => {
   await seed("profiles/worker/historyClaims", "req", {
     title: "Bar",

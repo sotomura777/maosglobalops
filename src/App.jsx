@@ -29,6 +29,7 @@ import {
   Approvals,
 } from "./marketplace/Profiles";
 import { MarketProvider } from "./marketplace/context";
+import { AdminPage } from "./marketplace/Admin";
 import "./marketplace/market.css";
 const AuthCtx = createContext({ user: null, profile: null, loading: true });
 export const useAuth = () => useContext(AuthCtx);
@@ -146,6 +147,7 @@ const router = createBrowserRouter(
           <Route path="conta" element={<AccountPage />} />
           <Route path="perfil" element={<EditProfile />} />
           <Route path="aprovacoes" element={<Approvals />} />
+          <Route path="admin" element={<AdminPage />} />
           <Route
             path="canais"
             element={

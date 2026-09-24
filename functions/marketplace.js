@@ -1,10 +1,10 @@
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 import { scheduleOf, overlaps, isLateCancellation } from "./schedule.js";
-const fail = (message, code = "failed-precondition") => {
+export const fail = (message, code = "failed-precondition") => {
   throw new HttpsError(code, message);
 };
-const text = (value, max, required = false) => {
+export const text = (value, max, required = false) => {
   if (
     typeof value !== "string" ||
     value.length > max ||
@@ -13,7 +13,7 @@ const text = (value, max, required = false) => {
     fail("Verifica os campos preenchidos.", "invalid-argument");
   return value.trim();
 };
-const id = (value) => {
+export const id = (value) => {
   if (typeof value !== "string" || !/^[A-Za-z0-9_-]{1,200}$/.test(value))
     fail("Identificador inválido.", "invalid-argument");
   return value;
@@ -87,7 +87,10 @@ export function createMarketplace(db, clock = Date.now) {
     const uid = auth.uid;
     const operation = data?.operation;
     const verified = auth.token?.email_verified === true;
-    if (["publish", "apply"].includes(operation) && !verified)
+    // Uma sessão aberta antes da suspensão pode ainda ter token válido; o perfil decide.
+    if ((await db.doc(`profiles/${uid}`).get()).data()?.suspended === true)
+      fail("Esta conta está suspensa. Contacta o suporte.", "permission-denied");
+    if (["publish", "apply", "endorse"].includes(operation) && !verified)
       fail("Confirma o email em Segurança da conta.", "permission-denied");
     if (operation === "publish") {
       const jobId = id(data.id); // Stable request ID makes a retry safe after a lost response.
@@ -163,15 +166,22 @@ export function createMarketplace(db, clock = Date.now) {
       const approve = data.decision === "approve";
       const claimRef = db.doc(`profiles/${workerId}/historyClaims/${claimId}`);
       await db.runTransaction(async (tx) => {
-        const [c, snap] = await Promise.all([
+        const [c, snap, status] = await Promise.all([
           tx.get(db.doc(`profiles/${uid}`)),
           tx.get(claimRef),
+          tx.get(db.doc(`companyStatus/${uid}`)),
         ]);
         if (c.data()?.kind !== "company")
           fail("Só as empresas confirmam trabalhos.", "permission-denied");
         const claim = snap.data();
         if (!claim || claim.companyId !== uid)
           fail("Pedido indisponível.", "permission-denied");
+        // Só uma empresa validada pela administração pode verificar trabalhos passados.
+        if (status.data()?.verification !== "verified")
+          fail(
+            "A tua empresa ainda não foi validada. Os pedidos ficam guardados até lá.",
+            "permission-denied",
+          );
         if (claim.status !== "pending") return; // Repetição do mesmo pedido é inócua.
         if (approve) {
           const hours = claim.hours ?? 0;
@@ -192,6 +202,7 @@ export function createMarketplace(db, clock = Date.now) {
               date: claim.date || "",
               hours,
               verified: true,
+              companyVerified: true,
               source: "external",
               approvedBy: uid,
               createdAt: FieldValue.serverTimestamp(),
@@ -237,8 +248,11 @@ export function createMarketplace(db, clock = Date.now) {
         fail("Confirma o email em Segurança da conta.", "permission-denied");
       const jobRef = db.doc(`jobs/${a.jobId}`),
         workerLock = db.doc(`workerSchedules/${a.workerId}`);
-      const j = await tx.get(jobRef),
-        job = j.data();
+      const [j, companyStatus] = await Promise.all([
+        tx.get(jobRef),
+        next === "completed" ? tx.get(db.doc(`companyStatus/${a.companyId}`)) : null,
+      ]);
+      const job = j.data();
       if (!job) fail("Oferta indisponível.");
       const requiresSchedule =
         next === "accepted" ||
@@ -375,6 +389,7 @@ export function createMarketplace(db, clock = Date.now) {
             date: a.agreedTerms?.date || job.date,
             hours: Math.round(((s.endMs - s.startMs) / 3600000) * 100) / 100,
             verified: true,
+            companyVerified: companyStatus?.data()?.verification === "verified",
             source: "app",
             engagementId: snap.id,
             createdAt: FieldValue.serverTimestamp(),

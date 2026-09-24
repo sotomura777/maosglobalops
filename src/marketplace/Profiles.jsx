@@ -12,6 +12,7 @@ import {
   deleteHistoryClaim,
   getReputation,
   endorse,
+  getCompanyStatus,
 } from "./service";
 import { useMarket } from "./context";
 import { dateLabel, attendanceRate } from "./model";
@@ -148,6 +149,7 @@ export function PublicProfile() {
   const [history, setHistory] = useState([]);
   const [claims, setClaims] = useState([]);
   const [rep, setRep] = useState({});
+  const [verification, setVerification] = useState("pending");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -161,9 +163,11 @@ export function PublicProfile() {
       getWorkHistory(id),
       getHistoryClaims(id).catch(() => []),
       getReputation(id).catch(() => ({})),
+      getCompanyStatus(id).catch(() => "pending"),
     ])
-      .then(([p, v, r, h, c, rp]) => {
+      .then(([p, v, r, h, c, rp, cs]) => {
         if (active) {
+          setVerification(cs);
           setP(p);
           setVals(v);
           setReviews(r);
@@ -208,8 +212,13 @@ export function PublicProfile() {
       company: h.companyName,
       date: h.date,
       hours: h.hours,
-      badge: h.source === "external" ? "Confirmado pela empresa" : "Verificado",
-      tone: "green",
+      // Só conta como verificado quando a empresa foi validada pela administração.
+      badge: !h.companyVerified
+        ? "Concluído na app"
+        : h.source === "external"
+          ? "Confirmado pela empresa"
+          : "Verificado",
+      tone: h.companyVerified ? "green" : "",
     })),
     ...claims
       // Um pedido recusado pela empresa não aparece como declaração no perfil público.
@@ -251,7 +260,11 @@ export function PublicProfile() {
         </div>
         <div className="row wrap" style={{ marginTop: 20 }}>
           {company ? (
-            <span className="tag">Identificação declarada pela empresa</span>
+            verification === "verified" ? (
+              <span className="tag green">Empresa validada</span>
+            ) : (
+              <span className="tag">Identificação declarada pela empresa</span>
+            )
           ) : (
             <span
               className={`tag ${p.availability === "disponivel" ? "green" : ""}`}

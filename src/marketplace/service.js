@@ -18,10 +18,11 @@ import {
 import { db, functions, auth } from "../services/firebase";
 import { httpsCallable } from "firebase/functions";
 const contracting = httpsCallable(functions, "contracting");
-async function contract(data) {
+const administration = httpsCallable(functions, "admin");
+async function contract(data, callable = contracting) {
   try {
     await auth.currentUser?.getIdToken(true);
-    return (await contracting(data)).data;
+    return (await callable(data)).data;
   } catch (e) {
     throw new Error(
       e.code === "functions/unavailable"
@@ -232,3 +233,8 @@ export const review = (a, uid, rating, text) =>
     text: text.trim(),
     createdAt: serverTimestamp(),
   });
+export const adminApi = (operation, data = {}) =>
+  contract({ ...data, operation }, administration);
+export const getCompanyStatus = async (uid) =>
+  (await getDoc(doc(db, "companyStatus", uid))).data()?.verification ||
+  "pending";
