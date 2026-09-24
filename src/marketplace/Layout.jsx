@@ -1,10 +1,10 @@
-import { cloneElement, useId } from "react";
+import { cloneElement, Suspense, useId } from "react";
 import { NavLink, Outlet, Link } from "react-router-dom";
 import { useAuth } from "../App";
 import { signOut } from "../services/authService";
 import { useMarket } from "./context";
 import { initials } from "../ui";
-import { useIsAdmin } from "./Admin";
+import { useIsAdmin } from "./useIsAdmin";
 export function Icon({ name, ...props }) {
   const paths = {
     home: "M3 10 12 3l9 7v10H6V10m3 10v-7h6v7",
@@ -136,7 +136,9 @@ export default function Layout() {
             </div>
           )}
           {error && <ErrorBox>{error}</ErrorBox>}
-          <Outlet />
+          <Suspense fallback={<p className="subtle">A carregar…</p>}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
       <nav className="market-tabs" aria-label="Navegação principal">

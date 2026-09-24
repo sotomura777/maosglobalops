@@ -33,15 +33,16 @@ async function contract(data, callable = contracting) {
 }
 import { timestampMillis } from "./model";
 const rows = (s) => s.docs.map((d) => ({ ...d.data(), id: d.id }));
+// As 100 ofertas abertas mais recentes: limita leituras (e custo) quando o volume crescer.
 export const watchJobs = (cb, err) =>
   onSnapshot(
-    query(collection(db, "jobs"), where("status", "==", "open")),
-    (s) =>
-      cb(
-        rows(s).sort((a, b) =>
-          (b.createdAt || "").localeCompare(a.createdAt || ""),
-        ),
-      ),
+    query(
+      collection(db, "jobs"),
+      where("status", "==", "open"),
+      orderBy("createdAt", "desc"),
+      limit(100),
+    ),
+    (s) => cb(rows(s)),
     err,
   );
 export const watchOwnJobs = (uid, cb, err) =>

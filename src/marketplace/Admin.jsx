@@ -1,27 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { useAuth } from "../App";
+import { useIsAdmin } from "./useIsAdmin";
 import { adminApi } from "./service";
 import { STATUS } from "./model";
 import { Empty, ErrorBox, Field, Heading } from "./Layout";
 import { REPORT_REASONS } from "./Report";
-
-// A claim vem no token de login; a app só a lê, nunca a escreve.
-export function useIsAdmin() {
-  const { user } = useAuth();
-  const [admin, setAdmin] = useState(null);
-  useEffect(() => {
-    let active = true;
-    user
-      ?.getIdTokenResult()
-      .then((r) => active && setAdmin(r.claims.admin === true))
-      .catch(() => active && setAdmin(false));
-    return () => {
-      active = false;
-    };
-  }, [user]);
-  return admin;
-}
 
 const TABS = [
   ["stats", "Estatísticas"],

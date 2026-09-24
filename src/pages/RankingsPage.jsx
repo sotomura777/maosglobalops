@@ -5,6 +5,10 @@ import { listValidationsFor } from '../services/workService';
 import { listPublicProfiles } from '../services/profileService';
 import { scoreOf } from '../ui';
 
+// Guardado durante a sessão: voltar ao ranking não repete as leituras de todos os perfis.
+let cache = null;
+const CACHE_MS = 10 * 60000;
+
 export default function RankingsPage() {
   const { user } = useAuth();
   const [rows, setRows] = useState(null);
@@ -13,13 +17,17 @@ export default function RankingsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const pubs = await listPublicProfiles();
-        const vals = [];
-        // Small batches bound concurrent reads; a profile may become private meanwhile.
-        for (let i = 0; i < pubs.length; i += 5) {
-          const batch = await Promise.all(pubs.slice(i, i + 5).map(p => listValidationsFor(p.id).catch(() => [])));
-          vals.push(...batch.flat());
+        if (!cache || Date.now() - cache.at > CACHE_MS) {
+          const pubs = await listPublicProfiles();
+          const vals = [];
+          // Small batches bound concurrent reads; a profile may become private meanwhile.
+          for (let i = 0; i < pubs.length; i += 10) {
+            const batch = await Promise.all(pubs.slice(i, i + 10).map(p => listValidationsFor(p.id).catch(() => [])));
+            vals.push(...batch.flat());
+          }
+          cache = { at: Date.now(), pubs, vals };
         }
+        const { pubs, vals } = cache;
         const pubIds = new Map(pubs.map(p => [p.id, p]));
         const agg = {};
         vals.forEach(v => {

@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext } from "react";
+import { useState, useEffect, createContext, useContext, lazy } from "react";
 import {
   createBrowserRouter,
   createRoutesFromElements,
@@ -15,21 +15,26 @@ import AccountPage from "./pages/AccountPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import RegisterCompanyPage from "./pages/RegisterCompanyPage";
-import ChannelsPage from "./pages/ChannelsPage";
-import EarningsPage from "./pages/EarningsPage";
-import RankingsPage from "./pages/RankingsPage";
 import Layout from "./marketplace/Layout";
-import Home from "./marketplace/Home";
-import { Explore, JobDetails, NewJob } from "./marketplace/Jobs";
-import { MyWork, Engagement, Inbox } from "./marketplace/Work";
-import {
-  Directory,
-  PublicProfile,
-  EditProfile,
-  Approvals,
-} from "./marketplace/Profiles";
 import { MarketProvider } from "./marketplace/context";
-import { AdminPage } from "./marketplace/Admin";
+// As páginas da app só descarregam quando são abertas: o primeiro ecrã fica mais leve.
+const page = (load, name = "default") =>
+  lazy(() => load().then((m) => ({ default: m[name] })));
+const ChannelsPage = page(() => import("./pages/ChannelsPage"));
+const EarningsPage = page(() => import("./pages/EarningsPage"));
+const RankingsPage = page(() => import("./pages/RankingsPage"));
+const Home = page(() => import("./marketplace/Home"));
+const Explore = page(() => import("./marketplace/Jobs"), "Explore");
+const JobDetails = page(() => import("./marketplace/Jobs"), "JobDetails");
+const NewJob = page(() => import("./marketplace/Jobs"), "NewJob");
+const MyWork = page(() => import("./marketplace/Work"), "MyWork");
+const Engagement = page(() => import("./marketplace/Work"), "Engagement");
+const Inbox = page(() => import("./marketplace/Work"), "Inbox");
+const Directory = page(() => import("./marketplace/Profiles"), "Directory");
+const PublicProfile = page(() => import("./marketplace/Profiles"), "PublicProfile");
+const EditProfile = page(() => import("./marketplace/Profiles"), "EditProfile");
+const Approvals = page(() => import("./marketplace/Profiles"), "Approvals");
+const AdminPage = page(() => import("./marketplace/Admin"), "AdminPage");
 import "./marketplace/market.css";
 const AuthCtx = createContext({ user: null, profile: null, loading: true });
 export const useAuth = () => useContext(AuthCtx);
