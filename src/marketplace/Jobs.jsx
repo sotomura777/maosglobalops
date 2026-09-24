@@ -32,6 +32,7 @@ import {
 import { CATEGORIES, DISTRICTS } from "../constants";
 import { CompanyMark } from "../ui";
 import { Heading, Empty, ErrorBox, Field, Icon } from "./Layout";
+import { ReportButton } from "./Report";
 export function JobCard({ job }) {
   const { user, profile } = useAuth();
   const { saved, applications } = useMarket();
@@ -514,6 +515,11 @@ export function JobDetails() {
           </p>
         )}
       </div>
+      {!owner && (
+        <div className="report-slot">
+          <ReportButton targetType="job" targetId={id} label="Denunciar esta oferta" />
+        </div>
+      )}
     </>
   );
 }

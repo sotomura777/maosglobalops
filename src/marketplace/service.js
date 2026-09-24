@@ -238,3 +238,15 @@ export const adminApi = (operation, data = {}) =>
 export const getCompanyStatus = async (uid) =>
   (await getDoc(doc(db, "companyStatus", uid))).data()?.verification ||
   "pending";
+// O id liga quem denuncia ao alvo: repetir não cria uma segunda denúncia.
+export const createReport = (uid, { targetType, targetId, engagementId, reason, text }) =>
+  setDoc(doc(db, "reports", `${uid}_${targetType}_${targetId}`), {
+    reporterId: uid,
+    targetType,
+    targetId,
+    ...(engagementId ? { engagementId } : {}),
+    reason,
+    text: text.trim(),
+    status: "open",
+    createdAt: serverTimestamp(),
+  });

@@ -140,6 +140,20 @@ service cloud.firestore {
           request.resource.data.text.size() > 0 && request.resource.data.createdAt == request.time;
       }
     }
+    // Denúncias: uma por pessoa e por alvo (o id liga os dois). Só a administração as lê, pela função.
+    match /reports/{id} {
+      allow create: if verified() &&
+        request.resource.data.keys().hasOnly(['reporterId','targetType','targetId','engagementId','reason','text','status','createdAt']) &&
+        request.resource.data.reporterId == request.auth.uid &&
+        request.resource.data.targetType in ['profile','job','message'] &&
+        request.resource.data.targetId is string && request.resource.data.targetId.matches('^[A-Za-z0-9_-]{1,200}$') &&
+        id == request.auth.uid + '_' + request.resource.data.targetType + '_' + request.resource.data.targetId &&
+        request.resource.data.reason in ['spam','fraude','assedio','conteudo_improprio','dados_falsos','outro'] &&
+        shortText(request.resource.data.text, 1000) &&
+        request.resource.data.status == 'open' && request.resource.data.createdAt == request.time &&
+        (request.resource.data.targetType != 'message' ||
+          participant(engagement(request.resource.data.engagementId)));
+    }
     match /reviews/{id} {
       allow read: if signed();
       allow create: if signed() && request.resource.data.keys().hasOnly(['engagementId','authorId','subjectId','rating','text','createdAt']) &&

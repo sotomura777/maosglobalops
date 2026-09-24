@@ -513,6 +513,24 @@ select option {
   color: var(--text-4);
   margin-top: 7px;
 }
+.report-slot {
+  margin-top: 16px;
+}
+.market-shell .report-link {
+  min-height: 32px;
+  padding: 6px 0;
+  font-size: 11px;
+  color: var(--text-4);
+  text-decoration: underline;
+}
+.market-shell .report-link:hover,
+.market-shell .report-link:focus-visible {
+  color: var(--text-2);
+}
+.bubble .report-form {
+  margin-top: 10px;
+  white-space: normal;
+}
 .message-form {
   display: flex;
   gap: 8px;

@@ -4,6 +4,7 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useAuth } from "../App";
 import { useMarket } from "./context";
 import { Heading, Empty, ErrorBox, Field, Icon } from "./Layout";
+import { ReportButton } from "./Report";
 import {
   STATUS,
   actionsFor,
@@ -732,6 +733,14 @@ function EngagementView() {
                   minute: "2-digit",
                 }) || "A enviar"}
               </small>
+              {m.senderId !== user.uid && (
+                <ReportButton
+                  targetType="message"
+                  targetId={m.id}
+                  engagementId={a.id}
+                  label="Denunciar mensagem"
+                />
+              )}
             </div>
           ))}
           <div ref={end} />

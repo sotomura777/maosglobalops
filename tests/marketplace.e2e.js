@@ -521,6 +521,24 @@ test("administração: estatísticas, validação de empresas e suspensão de co
   await aurora.getByRole("link", { name: "Ver perfil público →" }).click();
   await expect(page.getByText("Empresa validada", { exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("empresa-validada.png"), fullPage: true });
+  // Any verified account can report a profile; the report lands in the admin queue.
+  await page.getByRole("button", { name: "Denunciar este perfil" }).click();
+  await page.getByLabel("Motivo").selectOption("dados_falsos");
+  await page.getByLabel("Detalhes (opcional)").fill("Diz ter 20 anos de atividade.");
+  await page.screenshot({ path: testInfo.outputPath("denuncia-formulario.png"), fullPage: true });
+  await page.getByRole("button", { name: "Enviar denúncia" }).click();
+  await expect(page.getByText("Obrigado. A equipa vai analisar a denúncia.")).toBeVisible();
+  await page.goto("/app/admin?tab=reports");
+  const card = page.locator(".panel").filter({ hasText: "Informação falsa" });
+  await expect(card).toContainText("Diz ter 20 anos de atividade.");
+  const resolve = card.getByRole("button", { name: "Marcar como resolvida" });
+  await expect(resolve).toBeDisabled();
+  await card.getByLabel("Decisão (fica registada)").fill("Empresa contactada; dados corrigidos.");
+  await page.screenshot({ path: testInfo.outputPath("admin-denuncias.png"), fullPage: true });
+  await resolve.click();
+  await expect(page.getByText("Sem denúncias por tratar")).toBeVisible();
+  await page.getByRole("button", { name: "Resolvidas" }).click();
+  await expect(page.getByText("Decisão: Empresa contactada; dados corrigidos.")).toBeVisible();
 
   await page.goto("/app/admin?tab=accounts");
   await page.getByLabel("Email da conta").fill(shared.workerEmail);

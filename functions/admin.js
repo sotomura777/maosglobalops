@@ -154,6 +154,86 @@ export function createAdmin(db, auth, clock = Date.now) {
       await batch.commit();
       return { ok: true };
     }
+    if (operation === "listReports") {
+      const status = data.status === "resolved" ? "resolved" : "open";
+      const snap = await db
+        .collection("reports")
+        .where("status", "==", status)
+        .orderBy("createdAt", "desc")
+        .limit(100)
+        .get();
+      const nameOf = async (uid) => {
+        const p = uid ? (await db.doc(`profiles/${uid}`).get()).data() : null;
+        return { uid: uid || "", name: p?.name || "", email: p?.email || "" };
+      };
+      return Promise.all(
+        snap.docs.map(async (d) => {
+          const r = d.data();
+          let target = { ownerId: "" };
+          if (r.targetType === "profile") {
+            const who = await nameOf(r.targetId);
+            target = { ownerId: r.targetId, name: who.name };
+          } else if (r.targetType === "job") {
+            const j = (await db.doc(`jobs/${r.targetId}`).get()).data();
+            target = {
+              ownerId: j?.companyId || "",
+              title: j?.title || "Oferta removida",
+              name: j?.companyName || "",
+              status: j?.status || "",
+            };
+          } else if (r.targetType === "message" && r.engagementId) {
+            const m = (
+              await db.doc(`engagements/${r.engagementId}/messages/${r.targetId}`).get()
+            ).data();
+            const who = await nameOf(m?.senderId);
+            target = {
+              ownerId: m?.senderId || "",
+              name: who.name,
+              text: m?.text || "Mensagem indisponível",
+              engagementId: r.engagementId,
+            };
+          }
+          return {
+            id: d.id,
+            targetType: r.targetType,
+            targetId: r.targetId,
+            reason: r.reason,
+            text: r.text || "",
+            createdAt: r.createdAt?.toMillis?.() || 0,
+            resolution: r.resolution || "",
+            reporter: await nameOf(r.reporterId),
+            target,
+          };
+        }),
+      );
+    }
+    if (operation === "resolveReport") {
+      const ref = db.doc(`reports/${id(data.id)}`);
+      const note = text(data.note ?? "", 1000, true);
+      if (!(await ref.get()).exists) fail("Denúncia indisponível.", "not-found");
+      const batch = db.batch();
+      batch.update(ref, {
+        status: "resolved",
+        resolution: note,
+        resolvedBy: actorId,
+        resolvedAt: FieldValue.serverTimestamp(),
+      });
+      log(batch, actorId, operation, ref.id, note);
+      await batch.commit();
+      return { ok: true };
+    }
+    if (operation === "closeJob") {
+      const ref = db.doc(`jobs/${id(data.jobId)}`);
+      const note = text(data.note ?? "", 500, true);
+      const job = await ref.get();
+      if (!job.exists) fail("Oferta indisponível.", "not-found");
+      const batch = db.batch();
+      // As candidaturas e o histórico mantêm-se; só deixa de receber candidaturas.
+      if (job.data().status === "open") batch.update(ref, { status: "closed" });
+      log(batch, actorId, operation, ref.id, note);
+      await batch.commit();
+      return { ok: true };
+    }
     fail("Operação inválida.", "invalid-argument");
   };
 }

@@ -136,3 +136,33 @@ test("suspension blocks login and server operations, and can be undone", async (
   assert.equal((await db.doc("profiles/ana").get()).data().suspended, false);
   assert.equal(await asAdmin({ operation: "findUser", email: "nobody@example.com" }), null);
 });
+
+test("reports are listed with context, resolved with a note and can close the job", async () => {
+  await db.doc("jobs/j1").set({ title: "Bar no festival", companyId: "acme", companyName: "acme", status: "open" });
+  await db.doc("engagements/e1").set({ workerId: "ana", companyId: "acme", status: "confirmed" });
+  await db.doc("engagements/e1/messages/m1").set({ senderId: "acme", text: "Paga-me 50€ para ficar com a vaga", createdAt: new Date() });
+  const base = { reporterId: "ana", reason: "fraude", text: "Burla", status: "open" };
+  await db.doc("reports/ana_job_j1").set({ ...base, targetType: "job", targetId: "j1", createdAt: new Date(1000) });
+  await db.doc("reports/ana_message_m1").set({ ...base, targetType: "message", targetId: "m1", engagementId: "e1", createdAt: new Date(2000) });
+  assert.equal((await asAdmin({ operation: "stats" })).reportsOpen, 2);
+  const open = await asAdmin({ operation: "listReports", status: "open" });
+  assert.deepEqual(open.map((r) => r.id), ["ana_message_m1", "ana_job_j1"]);
+  const [message, job] = open;
+  assert.equal(message.target.text, "Paga-me 50€ para ficar com a vaga");
+  assert.equal(message.target.ownerId, "acme");
+  assert.equal(message.reporter.email, "ana@example.com");
+  assert.equal(job.target.title, "Bar no festival");
+  assert.equal(job.target.ownerId, "acme");
+  await asAdmin({ operation: "closeJob", jobId: "j1", note: "Oferta fraudulenta" });
+  assert.equal((await db.doc("jobs/j1").get()).data().status, "closed");
+  await rejected(asAdmin({ operation: "resolveReport", id: "ana_job_j1", note: "" }), /campos/);
+  await asAdmin({ operation: "resolveReport", id: "ana_job_j1", note: "Oferta encerrada" });
+  const resolved = (await db.doc("reports/ana_job_j1").get()).data();
+  assert.equal(resolved.status, "resolved");
+  assert.equal(resolved.resolvedBy, "boss");
+  assert.deepEqual(
+    (await asAdmin({ operation: "listReports", status: "resolved" })).map((r) => r.id),
+    ["ana_job_j1"],
+  );
+  assert.equal((await asAdmin({ operation: "stats" })).reportsOpen, 1);
+});

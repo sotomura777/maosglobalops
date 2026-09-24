@@ -4,6 +4,7 @@ import { useAuth } from "../App";
 import { adminApi } from "./service";
 import { STATUS } from "./model";
 import { Empty, ErrorBox, Field, Heading } from "./Layout";
+import { REPORT_REASONS } from "./Report";
 
 // A claim vem no token de login; a app só a lê, nunca a escreve.
 export function useIsAdmin() {
@@ -25,6 +26,7 @@ export function useIsAdmin() {
 const TABS = [
   ["stats", "Estatísticas"],
   ["companies", "Empresas"],
+  ["reports", "Denúncias"],
   ["accounts", "Contas"],
 ];
 
@@ -59,20 +61,22 @@ export function AdminPage() {
       </div>
       {tab === "stats" && <Stats />}
       {tab === "companies" && <Companies />}
+      {tab === "reports" && <Reports />}
       {tab === "accounts" && <Accounts />}
     </>
   );
 }
 
-function useAdminQuery(operation) {
+function useAdminQuery(operation, params) {
   const [state, setState] = useState({ data: null, error: "", loading: true });
+  const key = JSON.stringify(params || {});
   const load = () => {
     setState((s) => ({ ...s, loading: true, error: "" }));
-    adminApi(operation)
+    adminApi(operation, JSON.parse(key))
       .then((data) => setState({ data, error: "", loading: false }))
       .catch((e) => setState({ data: null, error: e.message, loading: false }));
   };
-  useEffect(load, [operation]);
+  useEffect(load, [operation, key]);
   return [state, load];
 }
 
@@ -400,6 +404,173 @@ function Accounts() {
             </>
           )}
         </div>
+      )}
+    </div>
+  );
+}
+
+const TARGET = { profile: "Perfil", job: "Oferta", message: "Mensagem" };
+const reasonLabel = (id) =>
+  REPORT_REASONS.find(([r]) => r === id)?.[1] || id;
+
+function Reports() {
+  const [status, setStatus] = useState("open");
+  const [{ data, error, loading }, reload] = useAdminQuery("listReports", { status });
+  return (
+    <div className="stack">
+      <div className="tabs">
+        {[
+          ["open", "Por tratar"],
+          ["resolved", "Resolvidas"],
+        ].map(([id, label]) => (
+          <button
+            key={id}
+            className={status === id ? "active" : ""}
+            onClick={() => setStatus(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <ErrorBox>{error}</ErrorBox>
+      {!data ? (
+        !error && <p className="subtle">A carregar denúncias…</p>
+      ) : data.length ? (
+        data.map((r) => <ReportCard key={r.id} r={r} onDone={reload} busyList={loading} />)
+      ) : (
+        <Empty title={status === "open" ? "Sem denúncias por tratar" : "Sem denúncias resolvidas"}>
+          {status === "open"
+            ? "Quando alguém denunciar um perfil, uma oferta ou uma mensagem, aparece aqui."
+            : "As denúncias resolvidas ficam guardadas aqui com a tua nota."}
+        </Empty>
+      )}
+    </div>
+  );
+}
+
+function ReportCard({ r, onDone, busyList }) {
+  const [note, setNote] = useState("");
+  const [confirmSuspend, setConfirmSuspend] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const t = r.target;
+  const act = async (fn) => {
+    setBusy(true);
+    setError("");
+    try {
+      await fn();
+      onDone();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const open = !r.resolution;
+  return (
+    <div className="panel stack">
+      <div className="row between wrap">
+        <div>
+          <strong>
+            {TARGET[r.targetType]} · {reasonLabel(r.reason)}
+          </strong>
+          <p className="subtle">
+            Denunciado por {r.reporter.name || "conta sem perfil"} ({r.reporter.email})
+            {r.createdAt ? ` · ${new Date(r.createdAt).toLocaleString("pt-PT")}` : ""}
+          </p>
+        </div>
+        <span className={`tag ${open ? "gold" : "green"}`}>{open ? "Por tratar" : "Resolvida"}</span>
+      </div>
+      {r.text && <p>“{r.text}”</p>}
+      <div className="detail-grid">
+        <div>
+          <small>Alvo</small>
+          <strong>
+            {r.targetType === "job" ? t.title : t.name || "Sem nome"}
+            {r.targetType === "job" && t.name ? ` · ${t.name}` : ""}
+          </strong>
+        </div>
+        {r.targetType === "message" && (
+          <div>
+            <small>Mensagem</small>
+            <strong>{t.text}</strong>
+          </div>
+        )}
+        {r.targetType === "job" && (
+          <div>
+            <small>Estado da oferta</small>
+            <strong>{t.status === "open" ? "Aberta" : t.status ? "Encerrada" : "—"}</strong>
+          </div>
+        )}
+      </div>
+      <div className="row wrap">
+        {t.ownerId && (
+          <Link className="quiet" to={`/app/profissionais/${t.ownerId}`}>
+            Ver perfil do visado →
+          </Link>
+        )}
+        {r.targetType === "job" && (
+          <Link className="quiet" to={`/app/trabalhos/${r.targetId}`}>
+            Ver oferta →
+          </Link>
+        )}
+      </div>
+      {open ? (
+        <>
+          <Field label="Decisão (fica registada)">
+            <textarea
+              rows="2"
+              maxLength={1000}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Ex.: Oferta encerrada e empresa avisada."
+            />
+          </Field>
+          <ErrorBox>{error}</ErrorBox>
+          <div className="actions">
+            <button
+              className="btn gold"
+              disabled={busy || busyList || !note.trim()}
+              onClick={() => act(() => adminApi("resolveReport", { id: r.id, note }))}
+            >
+              {busy ? "A guardar…" : "Marcar como resolvida"}
+            </button>
+            {r.targetType === "job" && t.status === "open" && (
+              <button
+                className="btn secondary"
+                disabled={busy || !note.trim()}
+                onClick={() => act(() => adminApi("closeJob", { jobId: r.targetId, note }))}
+              >
+                Encerrar oferta
+              </button>
+            )}
+            {t.ownerId &&
+              (confirmSuspend ? (
+                <button
+                  className="btn secondary"
+                  disabled={busy}
+                  onClick={() =>
+                    act(() => adminApi("suspendUser", { uid: t.ownerId, note }))
+                  }
+                >
+                  Sim, suspender a conta
+                </button>
+              ) : (
+                <button
+                  className="btn secondary"
+                  disabled={busy || !note.trim()}
+                  onClick={() => setConfirmSuspend(true)}
+                >
+                  Suspender conta do visado
+                </button>
+              ))}
+          </div>
+          {!note.trim() && (
+            <p className="subtle">Escreve a decisão para ativar as ações.</p>
+          )}
+        </>
+      ) : (
+        <p className="subtle">Decisão: {r.resolution}</p>
       )}
     </div>
   );

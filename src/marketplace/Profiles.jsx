@@ -19,6 +19,7 @@ import { dateLabel, attendanceRate } from "./model";
 import { CATEGORIES, DISTRICTS, AVAILABILITY, PREFS } from "../constants";
 import { initials } from "../ui";
 import { Heading, Field, Empty, ErrorBox } from "./Layout";
+import { ReportButton } from "./Report";
 export function Directory() {
   const [all, setAll] = useState(null);
   const [error, setError] = useState("");
@@ -143,6 +144,7 @@ export function Directory() {
 }
 export function PublicProfile() {
   const { id } = useParams();
+  const { user } = useAuth();
   const [p, setP] = useState(null);
   const [vals, setVals] = useState([]);
   const [reviews, setReviews] = useState([]);
@@ -451,6 +453,11 @@ export function PublicProfile() {
           </p>
         )}
       </div>
+      {user.uid !== id && (
+        <div className="report-slot">
+          <ReportButton targetType="profile" targetId={id} label="Denunciar este perfil" />
+        </div>
+      )}
     </>
   );
 }

@@ -428,6 +428,41 @@ test("company validation and suspension are set only by the administration", asy
   );
   await assertFails(getDocs(collection(worker, "adminLog")));
 });
+test("reports: one per person and target, never readable by clients", async () => {
+  const report = (extra = {}) => ({
+    reporterId: "worker",
+    targetType: "profile",
+    targetId: "company",
+    reason: "fraude",
+    text: "Pede pagamento adiantado.",
+    status: "open",
+    createdAt: serverTimestamp(),
+    ...extra,
+  });
+  const ref = (db, id) => doc(db, "reports", id);
+  // The id binds reporter and target, so repeating it cannot flood the queue.
+  await assertFails(setDoc(ref(worker, "random"), report()));
+  await assertFails(setDoc(ref(worker, "worker_profile_company"), report({ reporterId: "company" })));
+  await assertFails(setDoc(ref(worker, "worker_profile_company"), report({ status: "resolved" })));
+  await assertFails(setDoc(ref(worker, "worker_profile_company"), report({ reason: "não gosto" })));
+  await assertFails(setDoc(ref(worker, "worker_profile_company"), report({ text: "x".repeat(1001) })));
+  await assertSucceeds(setDoc(ref(worker, "worker_profile_company"), report()));
+  await assertFails(setDoc(ref(worker, "worker_profile_company"), report()));
+  await assertFails(getDoc(ref(worker, "worker_profile_company")));
+  await assertFails(getDocs(collection(company, "reports")));
+  // Unverified accounts cannot report.
+  await assertFails(
+    setDoc(ref(stranger, "stranger_job_job"), report({ reporterId: "stranger", targetType: "job", targetId: "job" })),
+  );
+  // Messages can only be reported by a participant of that conversation.
+  await seed("engagements", "rep-e", { ...fresh(), status: "confirmed" });
+  const msg = { targetType: "message", targetId: "m1", engagementId: "rep-e" };
+  await assertSucceeds(setDoc(ref(company, "company_message_m1"), report({ ...msg, reporterId: "company" })));
+  const outsider = env
+    .authenticatedContext("outsider", { email: "o@example.com", email_verified: true })
+    .firestore();
+  await assertFails(setDoc(ref(outsider, "outsider_message_m1"), report({ ...msg, reporterId: "outsider" })));
+});
 test("a company only reads the pending approval requests addressed to it", async () => {
   await seed("profiles/worker/historyClaims", "req", {
     title: "Bar",
