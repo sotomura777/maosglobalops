@@ -21,7 +21,7 @@ Pré-visualização em produção, sem escritas: 4 ofertas e 1 candidatura; 4 of
 
 `node scripts/migrate-contracting.mjs --project maosglobalops` consulta contagens. Com `--execute`, acrescenta metadados de calendário e contagem apenas às ofertas com horário válido. Não altera condições, não cancela pessoas nem escreve na MaosOps. Recusa execução se detetar conflitos históricos.
 
-Ordem após ativar faturação e confirmar permissões:
+Ordem após ativar faturação e confirmar permissões (atualizada em [operacoes.md](../operacoes.md), que inclui as funções `admin`, `engagementMail` e `shiftReminders` e os índices):
 
 ```sh
 npm ci --prefix functions

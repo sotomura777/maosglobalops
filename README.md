@@ -79,6 +79,8 @@ Vagas, conflitos de horário e datas no servidor estão implementados localmente
 
 ## Fase 2 — preparada, ainda não publicada
 
+Publicação, conta de administração, denúncias, emails (Resend), App Check, backups e monitorização: ver [docs/operacoes.md](docs/operacoes.md). Esse manual substitui a ordem de publicação abaixo.
+
 As alterações atuais de contratação dependem da função `contracting`. **Não publicar apenas o hosting ou apenas as regras**: a produção continua na fase 1. O projeto foi consultado e tem `billingEnabled=false`; a ativação de faturação requer decisão do titular. Ver [plano de publicação e comportamento](docs/releases/2026-09-17-contratacoes.md).
 
 Para testar, iniciar os emuladores de Auth, Firestore **e Functions**, com projeto `demo-globalops` e `firebase.test.json`. `npm run test:emulators` executa sequencialmente permissões, transações e navegador para não limpar a base enquanto outro teste a usa. O relógio injetável só existe nos testes unitários do servidor; a função publicada usa sempre o relógio real.
