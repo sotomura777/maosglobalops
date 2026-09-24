@@ -12,6 +12,10 @@ test("recuperação de palavra-passe emite ligação válida e mantém resposta 
   expect(created.ok()).toBe(true);
   await page.goto("/entrar");
   await page.getByRole("link", { name: "Esqueci-me da palavra-passe" }).click();
+  // The route change is a transition: wait for it, or the login page's Email field gets filled.
+  await expect(
+    page.getByRole("heading", { name: "Recuperar palavra-passe" }),
+  ).toBeVisible();
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByRole("button", { name: "Enviar ligação" }).click();
   await expect(page.getByRole("status")).toContainText("Se existir uma conta");
