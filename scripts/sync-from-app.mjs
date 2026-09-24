@@ -8,8 +8,8 @@
  * Correspondência: EMAIL verificado do worker com autorização explícita na plataforma.
  * Sem correspondência → ignorado (o trabalhador ainda não aderiu à plataforma).
  *
- *   node scripts/sync-from-app.mjs --app maosops --company "Mãos"            # dry-run
- *   node scripts/sync-from-app.mjs --app maosops --company "Mãos" --execute
+ *   node scripts/sync-from-app.mjs --project maosglobalops --app maosops --company "Mãos"            # dry-run
+ *   node scripts/sync-from-app.mjs --project maosglobalops --app maosops --company "Mãos" --execute
  *
  * Idempotente: doc id determinístico app-{app}-{workerDocId} com set(merge).
  * Credenciais: ADC (gcloud auth application-default login) com acesso aos 2 projetos.
@@ -24,18 +24,21 @@ import { eligibleEmail, canAssociate } from "./lib/import-identity.mjs";
 const args = process.argv.slice(2);
 const appProject = args[args.indexOf("--app") + 1];
 const companyName = args[args.indexOf("--company") + 1];
+const hubProject = args[args.indexOf("--project") + 1];
 const EXECUTE = args.includes("--execute");
 if (!appProject || !companyName || appProject.startsWith("--")) {
-  console.error('uso: --app <projectId> --company "Nome" [--execute]');
+  console.error('uso: --project <maosglobalops|demo-globalops> --app <projectId> --company "Nome" [--execute]');
   process.exit(1);
 }
+if (!["maosglobalops", "demo-globalops"].includes(hubProject))
+  throw new Error("Indica --project maosglobalops ou demo-globalops.");
 
 const src = initializeApp(
   { credential: applicationDefault(), projectId: appProject },
   "src",
 );
 const hub = initializeApp(
-  { credential: applicationDefault(), projectId: "maosglobalops" },
+  { credential: applicationDefault(), projectId: hubProject },
   "hub",
 );
 const sdb = getFirestore(src);

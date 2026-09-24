@@ -1,8 +1,12 @@
 /** Arquiva apenas as ofertas de demonstração identificadas na revisão de UX. */
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-const db = getFirestore(initializeApp({ projectId: "maosglobalops" }));
-const execute = process.argv.includes("--execute");
+const args = process.argv.slice(2),
+  projectId = args[args.indexOf("--project") + 1];
+if (!["maosglobalops", "demo-globalops"].includes(projectId))
+  throw new Error("Indica --project maosglobalops ou demo-globalops.");
+const db = getFirestore(initializeApp({ projectId }));
+const execute = args.includes("--execute");
 const jobs = await db
   .collection("jobs")
   .where("title", "==", "2 barmen — Festival Teste")

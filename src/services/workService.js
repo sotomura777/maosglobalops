@@ -14,10 +14,7 @@ export async function listWorkEntries(uid) {
     .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
 }
 
-// ── Validações feitas por empresas (coleção de topo — alimenta o ranking) ──
-export const createValidation = (data) =>
-  addDoc(collection(db, 'validations'), { ...data, createdAt: new Date().toISOString() });
-
+// ── Validações importadas pelo servidor (coleção de topo — alimenta o ranking) ──
 export async function listValidationsFor(workerId) {
   const snap = await getDocs(query(collection(db, 'validations'), where('workerId', '==', workerId), limit(100)));
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
