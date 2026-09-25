@@ -45,6 +45,15 @@ Cada trabalho tem **uma só origem**: não pode entrar no currículo pela contra
 - A base legal é a execução do trabalho. Exige transparência: dizer na candidatura o que é partilhado, com quem e quando (na aceitação).
 - **Por rever por especialista antes de lançar.**
 
+## Se a pessoa recusar depois de aceite
+
+| Situação | Conta na app da empresa |
+|---|---|
+| Criada nesta aceitação, e a pessoa recusa antes de trabalhar | **Apagada** (RGPD: sem motivo para a empresa guardar os dados). Numa nova aceitação volta a ser criada automaticamente. |
+| Já existia por trabalhos anteriores | **Mantém-se**; a pessoa só sai deste trabalho (escalas, etc.). |
+
+Na GlobalOps fica a candidatura com o estado e o motivo. Recusar antes de confirmar não penaliza a fiabilidade.
+
 ## O que muda em cada lado
 
 **GlobalOps**
@@ -62,6 +71,5 @@ Cada trabalho tem **uma só origem**: não pode entrar no currículo pela contra
 
 ## Em aberto
 
-- Se a pessoa recusar o trabalho depois de aceite, a conta na app da empresa fica inativa ou é apagada?
 - Mecanismo técnico do "Entrar com GlobalOps" entre projetos Firebase diferentes. Proposta: a app da empresa valida o login da GlobalOps numa função e abre a sessão com a mesma identidade. A decidir depois de ver o código da MaosOps.
 - Formato do resultado devolvido e como a GlobalOps confirma que vem mesmo da app da empresa (autenticação entre servidores).
