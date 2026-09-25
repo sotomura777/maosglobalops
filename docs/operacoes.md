@@ -65,6 +65,26 @@ Em **Administração → Empresas → Por validar**:
 
 Só as empresas validadas mostram o selo e conseguem confirmar trabalhos passados. Os trabalhos concluídos na app com empresas por validar aparecem como "Concluído na app", sem o selo "Verificado".
 
+### Empresa com app própria (MaosOps, Btrust…)
+
+Em **Administração → Empresas → Validadas**, preencher "App própria (nome)" e "Endereço da app" (https) e guardar. Para retirar, deixar o nome vazio e guardar.
+
+A partir daí:
+- a candidatura a ofertas dessa empresa avisa que, se a pessoa for aceite, é criada conta de staff na app;
+- cada aceitação aparece à empresa em **Staff para a {app}**, no menu lateral e no início;
+- a empresa cria a conta na sua app e carrega em "Já criei a conta";
+- se a pessoa recusar antes de trabalhar, aparece em "Apagar na {app}": a empresa apaga a conta e confirma.
+
+Ver `docs/arquitetura-empresas.md`.
+
+**Ponte só de leitura (consola, uma vez):**
+1. No projeto da app da empresa, criar uma conta de serviço só com a função "Cloud Datastore Viewer".
+2. Gerar uma chave JSON e guardá-la fora do repo, ou com nome `*-key.json`, que o git ignora.
+3. Correr:
+   ```sh
+   node scripts/sync-from-app.mjs --project maosglobalops --app maosops --company "Mãos" --source-key ~/chaves/maosops-reader-key.json
+   ```
+
 ### Tratar uma denúncia
 
 Em **Administração → Denúncias**:

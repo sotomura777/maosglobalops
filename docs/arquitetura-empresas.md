@@ -54,22 +54,37 @@ Cada trabalho tem **uma só origem**: não pode entrar no currículo pela contra
 
 Na GlobalOps fica a candidatura com o estado e o motivo. Recusar antes de confirmar não penaliza a fiabilidade.
 
-## O que muda em cada lado
+## Hoje (manual) e depois (automático)
 
-**GlobalOps**
-1. No admin: marcar a empresa como "tem app própria", com a ligação à app. Só para empresas validadas.
-2. No ecrã de candidatura: o aviso de partilha para empresas com app própria.
-3. Na aceitação (`pending → accepted`, na função `contracting`): pedir à app da empresa a criação da conta de staff.
-4. Receber o resultado devolvido pela app da empresa e aplicá-lo à contratação: conclusão, presença, reputação e histórico. Substitui o `scripts/sync-from-app.mjs` para os trabalhos que começaram na GlobalOps.
-5. Em "As minhas empresas": um atalho para abrir cada app onde a pessoa tem conta.
+**Hoje, sem tocar nas apps das empresas**, já implementado na GlobalOps:
+- **Marcar a empresa:** o admin marca uma empresa validada como "tem app própria" (nome e endereço https) em Administração → Empresas. Fica em `companyStatus/{uid}.app`.
+- **Aviso na candidatura:** a candidatura a ofertas dessa empresa mostra o aviso de partilha de dados.
+- **Aceitação:** aceitar cria ou atualiza `handovers/{empresa}_{pessoa}`, com nome, email, telefone e as contratações. Só a empresa e a pessoa o leem, e só o servidor o escreve.
+- **Estados do pedido:**
+  - `to_create` → `created`: a empresa cria a conta na app e confirma em "Staff para a {app}";
+  - recusa antes de trabalhar, sem outro trabalho ativo: `created` → `to_delete` → `deleted` (a empresa apaga e confirma), ou `to_create` → `cancelled`;
+  - com `worked: true`, depois de um trabalho concluído, nunca passa a `to_delete`;
+  - em `deleted` e `cancelled`, o email e o telefone são limpos.
+- **Para a pessoa:** vê "As minhas empresas" no início, com o atalho para abrir a app.
+- **Resultado do trabalho:** continua a ser confirmado na GlobalOps. A empresa assinala e a pessoa confirma.
+- **Ponte:** o `scripts/sync-from-app.mjs` continua só de leitura. Com `--source-key`, lê a app com uma conta de serviço que não consegue escrever nela.
 
-**App da empresa (MaosOps, Btrust)**
-1. Receber o pedido de criação de conta e criá-la ligada à identidade GlobalOps.
-2. "Entrar com GlobalOps": aceitar o login da GlobalOps em vez de uma password própria.
-3. Devolver o resultado de cada trabalho à GlobalOps.
-4. As apps devem partilhar a mesma base de código, com as personalizações como configuração ou módulos, para não haver N apps diferentes para manter.
+**Limitação até haver ligação automática:** um trabalho feito com a Mãos pela GlobalOps pode aparecer duas vezes no perfil. Uma vez nas contratações da GlobalOps, outra na "Experiência validada" importada da MaosOps, porque a MaosOps ainda não sabe que esse evento veio da GlobalOps.
 
-## Em aberto
+**Depois (automático)** exige uma alteração pequena em cada app de empresa, feita num branch à parte e revista antes de entrar.
 
-- Mecanismo técnico do "Entrar com GlobalOps" entre projetos Firebase diferentes. Proposta: a app da empresa valida o login da GlobalOps numa função e abre a sessão com a mesma identidade. A decidir depois de ver o código da MaosOps.
-- Formato do resultado devolvido e como a GlobalOps confirma que vem mesmo da app da empresa (autenticação entre servidores).
+## Contrato para as apps das empresas
+
+1. **Criar ou apagar a conta.** A app lê os `handovers` com o estado `to_create` ou `to_delete` da sua empresa, com uma conta de serviço da GlobalOps limitada a isso ou através de uma função da GlobalOps. Cria ou apaga a conta e confirma pela operação `handover {workerId, done: "created" | "deleted"}`, que já existe e é a mesma que o admin usa à mão.
+2. **Identidade.** A conta de staff guarda o `uid` da GlobalOps (`globalopsUid`). O "Entrar com GlobalOps" funciona assim: a app valida o token de login da GlobalOps numa função sua e abre a sessão para o staff com esse `globalopsUid`.
+3. **Ligação do trabalho.** Cada evento ou turno criado para alguém que veio da GlobalOps guarda o `globalopsEngagementId`. Sem este campo não é possível devolver resultados nem evitar a contagem a dobrar.
+4. **Resultado.** No fim do trabalho, a app envia para a GlobalOps:
+   ```
+   { engagementId, attendance: "present" | "late" | "no_show", lateMinutes, hours }
+   ```
+   A chamada é autenticada entre servidores. A GlobalOps aplica-o como se a empresa tivesse assinalado a conclusão, e a pessoa continua a confirmar. Os trabalhos com `globalopsEngagementId` deixam de entrar na importação agregada do `sync-from-app`.
+
+## O que falta do lado das apps (MaosOps, Btrust)
+
+1. Pontos 1 a 4 do contrato.
+2. As apps devem partilhar a mesma base de código, com as personalizações como configuração ou módulos, para não haver N apps diferentes para manter.
