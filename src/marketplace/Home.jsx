@@ -7,6 +7,7 @@ import { dateLabel, today, needsResponse, statusFor, payLabel } from "./model";
 import { Heading, ErrorBox, Icon } from "./Layout";
 import { JobCard } from "./Jobs";
 import { useJobDetails } from "./useJobs";
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 export default function Home() {
   const { user, profile } = useAuth();
   const {
@@ -258,16 +259,20 @@ export default function Home() {
       )}
       <div className="activity-summary">
         <Link to="/app/meus-trabalhos?tab=waiting">
-          {
+          {plural(
             applications.filter((a) =>
               ["pending", "accepted"].includes(a.status),
-            ).length
-          }{" "}
-          candidaturas em curso
+            ).length,
+            "candidatura em curso",
+            "candidaturas em curso",
+          )}
         </Link>
         <Link to="/app/meus-trabalhos?tab=history">
-          {applications.filter((a) => a.status === "completed").length}{" "}
-          trabalhos concluídos
+          {plural(
+            applications.filter((a) => a.status === "completed").length,
+            "trabalho concluído",
+            "trabalhos concluídos",
+          )}
         </Link>
         {!company && <Link to="/app/ganhos">Horas e ganhos →</Link>}
       </div>
