@@ -14,6 +14,7 @@ import {
   endorse,
   getCompanyStatus,
   confirmHandover,
+  setFavorite,
 } from "./service";
 import { useMarket } from "./context";
 import { dateLabel, attendanceRate } from "./model";
@@ -28,6 +29,9 @@ export function Directory() {
   const [cat, setCat] = useState("");
   const [district, setDistrict] = useState("");
   const [available, setAvailable] = useState(false);
+  const [onlyFavorites, setOnlyFavorites] = useState(false);
+  const { favorites = [] } = useMarket();
+  const favoriteIds = new Set(favorites.map((f) => f.id));
   useEffect(() => {
     listPublicProfiles()
       .then(setAll)
@@ -46,7 +50,8 @@ export function Directory() {
           .includes(q.toLowerCase())) &&
       (!cat || p.categories?.includes(cat)) &&
       (!district || p.district === district) &&
-      (!available || p.availability === "disponivel"),
+      (!available || p.availability === "disponivel") &&
+      (!onlyFavorites || favoriteIds.has(p.id)),
   );
   return (
     <>
@@ -92,6 +97,16 @@ export function Directory() {
         />
         Só profissionais disponíveis
       </label>
+      {favorites.length > 0 && (
+        <label className="row subtle" style={{ margin: "-12px 0 24px" }}>
+          <input
+            type="checkbox"
+            checked={onlyFavorites}
+            onChange={(e) => setOnlyFavorites(e.target.checked)}
+          />
+          Só os meus favoritos ({favorites.length})
+        </label>
+      )}
       <ErrorBox>{error}</ErrorBox>
       {all === null && !error ? (
         <p role="status">A carregar profissionais…</p>
@@ -143,9 +158,33 @@ export function Directory() {
     </>
   );
 }
+function FavoriteButton({ workerId, workerName }) {
+  const { user } = useAuth();
+  const { favorites = [] } = useMarket();
+  const [busy, setBusy] = useState(false);
+  const on = favorites.some((f) => f.id === workerId);
+  return (
+    <button
+      type="button"
+      className={`btn ${on ? "gold" : "secondary"}`}
+      aria-pressed={on}
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        try {
+          await setFavorite(user.uid, workerId, workerName, !on);
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      {on ? "★ Nos favoritos" : "☆ Guardar nos favoritos"}
+    </button>
+  );
+}
 export function PublicProfile() {
   const { id } = useParams();
-  const { user } = useAuth();
+  const { user, profile: viewer } = useAuth();
   const [p, setP] = useState(null);
   const [vals, setVals] = useState([]);
   const [reviews, setReviews] = useState([]);
@@ -243,6 +282,11 @@ export function PublicProfile() {
       <Heading
         eyebrow={company ? "Perfil de empresa" : "Profissional independente"}
         title={p.name}
+        action={
+          !company && viewer?.kind === "company" && (
+            <FavoriteButton workerId={id} workerName={p.name} />
+          )
+        }
       />
       <div className="panel">
         <div className="profile-head">

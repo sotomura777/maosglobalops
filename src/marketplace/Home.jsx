@@ -9,7 +9,21 @@ import { JobCard } from "./Jobs";
 import { useJobDetails } from "./useJobs";
 export default function Home() {
   const { user, profile } = useAuth();
-  const { applications, loading, handovers = [], ownApp } = useMarket();
+  const {
+    applications,
+    loading,
+    handovers = [],
+    ownApp,
+    invitations = [],
+  } = useMarket();
+  // Convites ainda por responder, para trabalhos que ainda não começaram.
+  const openInvites = invitations
+    .filter(
+      (i) =>
+        !applications.some((a) => a.jobId === i.jobId) &&
+        (!/^\d{4}-\d{2}-\d{2}$/.test(i.date || "") || i.date >= today()),
+    )
+    .sort((a, b) => (a.date || "").localeCompare(b.date || ""));
   const handoverTodo = handovers.filter((h) =>
     ["to_create", "to_delete"].includes(h.status),
   ).length;
@@ -108,6 +122,26 @@ export default function Home() {
           </div>
           <Icon name="arrow" />
         </Link>
+      )}
+      {!company && openInvites.length > 0 && (
+        <section className="attention-panel">
+          <div className="row between">
+            <h2 className="section-title">Convites para ti</h2>
+            <span className="tag gold">{openInvites.length}</span>
+          </div>
+          {openInvites.slice(0, 5).map((i) => (
+            <Link key={i.id} className="action-row" to={`/app/trabalhos/${i.jobId}`}>
+              <div>
+                <strong>{i.title}</strong>
+                <p>
+                  {i.companyName} · {dateLabel(i.date)}
+                  {i.private ? " · Só por convite" : ""}
+                </p>
+              </div>
+              <Icon name="arrow" />
+            </Link>
+          ))}
+        </section>
       )}
       {!company && myCompanies.length > 0 && (
         <section className="panel">

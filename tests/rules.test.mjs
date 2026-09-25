@@ -443,6 +443,32 @@ test("public offers open without login; private ones only for the company and in
     getDocs(query(collection(company, "jobs"), where("companyId", "==", "company"))),
   );
 });
+test("favourites are private to the company; invitations only to the company and the invitee", async () => {
+  const fav = (db, owner, workerId) => doc(db, "profiles", owner, "favorites", workerId);
+  const entry = { workerName: "Ana", at: serverTimestamp() };
+  await assertSucceeds(setDoc(fav(company, "company", "worker"), entry));
+  await assertSucceeds(getDoc(fav(company, "company", "worker")));
+  await assertFails(getDoc(fav(worker, "company", "worker")));
+  await assertFails(setDoc(fav(worker, "worker", "stranger"), entry));
+  await assertFails(setDoc(fav(company, "company", "stranger"), { ...entry, note: "x" }));
+  await assertSucceeds(deleteDoc(fav(company, "company", "worker")));
+  await seed("invitations", "j9_worker", { jobId: "j9", workerId: "worker", companyId: "company" });
+  await assertSucceeds(getDoc(doc(worker, "invitations", "j9_worker")));
+  await assertSucceeds(getDoc(doc(company, "invitations", "j9_worker")));
+  await assertFails(getDoc(doc(stranger, "invitations", "j9_worker")));
+  await assertSucceeds(
+    getDocs(query(collection(worker, "invitations"), where("workerId", "==", "worker"))),
+  );
+  await assertFails(getDocs(collection(worker, "invitations")));
+  await assertFails(setDoc(doc(worker, "invitations", "j9_worker2"), { workerId: "worker" }));
+  // Drafts keep the visibility and the invite list.
+  await assertSucceeds(
+    setDoc(doc(company, "profiles", "company", "jobDrafts", "d-inv"), {
+      form: { title: "Gala", visibility: "private", invite: ["worker"] },
+      updatedAt: serverTimestamp(),
+    }),
+  );
+});
 test("handover requests are visible only to the company and the person", async () => {
   await seed("handovers", "company_worker", {
     companyId: "company",

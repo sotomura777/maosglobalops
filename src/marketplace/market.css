@@ -1252,3 +1252,54 @@ a.setup-strip:focus-visible strong {
   letter-spacing: -0.8px;
   margin: 8px 0 20px;
 }
+.audience {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.audience legend {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 0 6px;
+}
+.audience-title {
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 6px;
+}
+.choice {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  cursor: pointer;
+}
+.choice input {
+  width: auto;
+  margin-top: 3px;
+  accent-color: var(--gold);
+}
+.choice span {
+  display: grid;
+  gap: 3px;
+}
+.choice small {
+  color: var(--text-3);
+  font-size: 12px;
+}
+.invite-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+.choice.compact {
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--inset);
+}
+.choice.compact input {
+  margin-top: 0;
+}

@@ -6,6 +6,8 @@ import {
   watchApprovalRequests,
   watchHandovers,
   getCompanyStatus,
+  watchFavorites,
+  watchInvitations,
 } from "./service";
 import { timestampMillis } from "./model";
 import { useAuth } from "../App";
@@ -19,6 +21,8 @@ export function MarketProvider({ children }) {
   const [approvals, setApprovals] = useState([]);
   const [handovers, setHandovers] = useState([]);
   const [ownApp, setOwnApp] = useState(null);
+  const [favorites, setFavorites] = useState([]);
+  const [invitations, setInvitations] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -29,6 +33,8 @@ export function MarketProvider({ children }) {
     setApprovals([]);
     setHandovers([]);
     setOwnApp(null);
+    setFavorites([]);
+    setInvitations([]);
     setError("");
     const fail = () => {
       setError(
@@ -52,6 +58,9 @@ export function MarketProvider({ children }) {
         ? [watchApprovalRequests(user.uid, setApprovals, () => {})]
         : []),
       watchHandovers(user.uid, profile.kind === "company", setHandovers, () => {}),
+      profile.kind === "company"
+        ? watchFavorites(user.uid, setFavorites, () => {})
+        : watchInvitations(user.uid, setInvitations, () => {}),
     ];
     if (profile.kind === "company")
       getCompanyStatus(user.uid)
@@ -85,6 +94,8 @@ export function MarketProvider({ children }) {
         approvals,
         handovers,
         ownApp,
+        favorites,
+        invitations,
         loading,
         error,
       }}

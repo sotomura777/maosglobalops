@@ -123,19 +123,41 @@ export function createMarketplace(db, clock = Date.now) {
           return;
         }
         const job = validatedJob(data.job, clock());
+        const visibility = data.job.visibility === "private" ? "private" : "public";
+        const invite = Array.isArray(data.job.invite) ? [...new Set(data.job.invite)] : [];
+        if (invite.length > 100) fail("Podes convidar até 100 pessoas.", "invalid-argument");
+        if (visibility === "private" && !invite.length)
+          fail("Numa oferta privada, convida pelo menos uma pessoa.", "invalid-argument");
+        const invitees = invite.length
+          ? await tx.getAll(...invite.map((w) => db.doc(`profiles/${id(w)}`)))
+          : [];
+        if (invitees.some((d) => d.data()?.kind !== "worker" || d.data()?.suspended === true))
+          fail("Convite inválido: escolhe profissionais da GlobalOps.", "invalid-argument");
         (await spend(tx, uid, "publish"))();
         tx.create(ref, {
           ...job,
           companyId: uid,
           companyName: p.data().name,
           status: "open",
-          visibility: "public",
+          visibility,
           featured: false,
           filled: 0,
           schemaVersion: 2,
           createdAt: new Date(clock()).toISOString(),
         });
         if (draftRef) tx.delete(draftRef);
+        // Convidar não é contratar: o convidado candidata-se e a empresa escolhe.
+        for (const w of invite)
+          tx.create(db.doc(`invitations/${jobId}_${w}`), {
+            jobId,
+            workerId: w,
+            companyId: uid,
+            companyName: p.data().name,
+            title: job.title,
+            date: job.date,
+            private: visibility === "private",
+            createdAt: FieldValue.serverTimestamp(),
+          });
       });
       return { id: jobId };
     }
@@ -155,6 +177,11 @@ export function createMarketplace(db, clock = Date.now) {
         const job = j.data();
         if (!job || job.status !== "open" || schedule(job).startMs <= clock())
           fail("Esta oferta já terminou ou foi encerrada.");
+        if (
+          job.visibility === "private" &&
+          !(await tx.get(db.doc(`invitations/${jobId}_${uid}`))).exists
+        )
+          fail("Esta oferta é só por convite.", "permission-denied");
         if ((job.filled || 0) >= job.vacancies)
           fail("As vagas desta oferta já foram preenchidas.");
         (await spend(tx, uid, "apply"))();

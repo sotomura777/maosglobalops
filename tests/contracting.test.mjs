@@ -581,6 +581,37 @@ test("accepting someone at a company with its own app asks the company to create
   assert.equal(others.size, 0);
 });
 
+test("private offers are only seen and applied to by invitees; the company still chooses", async () => {
+  now = Date.parse("2096-01-01T09:00:00Z");
+  const offer = (id, extra) =>
+    call("company", { operation: "publish", id, job: { ...job, date: "2096-02-01", vacancies: 1, ...extra } });
+  // A private offer needs at least one invitee, and only real professionals can be invited.
+  await rejected(offer("p-none", { visibility: "private", invite: [] }), /convida/i);
+  await rejected(offer("p-bad", { visibility: "private", invite: ["company"] }), /Convite inválido/);
+  await rejected(offer("p-ghost", { visibility: "private", invite: ["nobody"] }), /Convite inválido/);
+  await offer("p1", { visibility: "private", invite: ["worker", "other"] });
+  const p1 = (await db.doc("jobs/p1").get()).data();
+  assert.equal(p1.visibility, "private");
+  assert.equal(p1.invite, undefined);
+  const inv = (await db.doc("invitations/p1_worker").get()).data();
+  assert.equal(inv.companyId, "company");
+  assert.equal(inv.private, true);
+  assert.equal((await db.doc("invitations/p1_third").get()).exists, false);
+  // Someone not invited cannot apply, even by calling the server directly.
+  await rejected(call("third", { operation: "apply", jobId: "p1", message: "" }), /só por convite/);
+  // Accepting the invitation is applying; both invitees apply and the company picks one.
+  await call("worker", { operation: "apply", jobId: "p1", message: "" });
+  await call("other", { operation: "apply", jobId: "p1", message: "" });
+  assert.equal((await db.doc("engagements/p1_worker").get()).data().status, "pending");
+  await change("company", "p1_worker", "pending", "accepted");
+  await change("company", "p1_other", "pending", "rejected", "Vaga preenchida");
+  // A public offer can also invite favourites, without closing it to others.
+  await offer("p2", { invite: ["worker"] });
+  assert.equal((await db.doc("jobs/p2").get()).data().visibility, "public");
+  assert.equal((await db.doc("invitations/p2_worker").get()).data().private, false);
+  await call("third", { operation: "apply", jobId: "p2", message: "" });
+});
+
 test("daily quotas stop floods without charging retries", async () => {
   now = Date.parse("2093-01-01T09:00:00Z");
   await db.doc("profiles/busy-co").set({ kind: "company", name: "Busy" });

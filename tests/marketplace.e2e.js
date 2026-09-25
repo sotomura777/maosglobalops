@@ -461,6 +461,9 @@ test("empresa e profissional: publicar, pesquisar, guardar, contratar, conversar
     path: testInfo.outputPath("perfil-desktop.png"),
     fullPage: true,
   });
+  // Aurora keeps Ana in its favourites to call her again.
+  await company.getByRole("button", { name: "☆ Guardar nos favoritos" }).click();
+  await expect(company.getByRole("button", { name: "★ Nos favoritos" })).toBeVisible();
   await worker.goto("/app/perfil");
   await worker.getByRole("button", { name: "Editar experiência" }).click();
   await worker.getByLabel("Função / cargo").fill("Chefe de bar");
@@ -501,6 +504,30 @@ test("empresa e profissional: publicar, pesquisar, guardar, contratar, conversar
   await worker.reload();
   await expect(personal).toContainText("70,00");
   await expect(worker.locator(".earnings-summary")).toContainText("84,00");
+  // A private offer, only for invited favourites. The invite is an application:
+  // Ana accepts it and Aurora still chooses.
+  await company.goto(jobPath);
+  await company.getByRole("link", { name: "Duplicar oferta", exact: true }).click();
+  await expect(company.getByLabel("Título *", { exact: true })).toHaveValue(
+    "Serviço de mesa · Gala em Lisboa",
+  );
+  await company.getByLabel("Título *", { exact: true }).fill("Jantar privado · só convidados");
+  await company.getByLabel("Data *", { exact: true }).fill("2099-11-11");
+  await company.getByRole("radio", { name: /Privada/ }).check();
+  await company.getByRole("checkbox", { name: "Ana Silva" }).check();
+  await company.screenshot({ path: testInfo.outputPath("publicar-privada.png"), fullPage: true });
+  await company.getByRole("button", { name: "Pré-visualizar oferta" }).click();
+  await expect(company.getByText("só a pessoa convidada")).toBeVisible();
+  await company.getByRole("button", { name: "Publicar oferta" }).click();
+  await expect(company.getByText("Só por convite", { exact: true })).toBeVisible();
+  await worker.goto("/app");
+  const invites = worker.locator(".attention-panel").filter({ hasText: "Convites para ti" });
+  await expect(invites).toContainText("Jantar privado · só convidados");
+  await worker.screenshot({ path: testInfo.outputPath("convites-mobile.png"), fullPage: true });
+  await invites.getByRole("link").filter({ hasText: "Jantar privado" }).click();
+  await worker.getByRole("button", { name: "Aceitar convite", exact: true }).click();
+  await expect(worker).toHaveURL(/contratacoes/);
+  await expect(worker.getByText("Candidatura enviada", { exact: true })).toHaveCount(1);
   for (const path of [
     "/app",
     "/app/trabalhos",

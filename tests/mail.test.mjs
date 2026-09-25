@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { engagementNotice, reminderNotice, resendSender } from "../functions/mail.js";
+import { engagementNotice, reminderNotice, resendSender, invitationNotice } from "../functions/mail.js";
 const url = "https://app.example";
 const base = {
   workerId: "w",
@@ -53,4 +53,16 @@ test("reminders carry the agreed time and place; no key means nothing leaves", a
   assert.match(n.subject, /2026-10-01, 18:00–23:00/);
   assert.match(n.text, /Local: Pavilhão/);
   assert.equal(await resendSender("", "x")("a@b.c", "s", "t", "k"), "dry_run");
+});
+
+test("an invitation tells the person it is an application, and that the company chooses", () => {
+  const n = invitationNotice(
+    { workerId: "w", companyName: "Aurora", title: "Gala", jobId: "j1", date: "2026-10-01", private: true },
+    url,
+  );
+  assert.equal(n.uid, "w");
+  assert.match(n.subject, /A Aurora convidou-te: Gala/);
+  assert.match(n.text, /só para convidados/);
+  assert.match(n.text, /a empresa escolhe/);
+  assert.match(n.text, /https:\/\/app\.example\/app\/trabalhos\/j1/);
 });

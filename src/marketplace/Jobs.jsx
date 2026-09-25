@@ -390,7 +390,7 @@ function ShareButton({ jobId, title }) {
 export function JobDetails() {
   const { id } = useParams();
   const { user, profile } = useAuth();
-  const { applications } = useMarket();
+  const { applications, invitations = [] } = useMarket();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -435,6 +435,7 @@ export function JobDetails() {
       </>
     );
   const owner = job.companyId === user.uid;
+  const invited = invitations.some((i) => i.jobId === id);
   const expired = job.startAt?.toMillis
     ? job.startAt.toMillis() <= Date.now()
     : /^\d{4}-\d{2}-\d{2}$/.test(job.date) && job.date < today();
@@ -447,7 +448,9 @@ export function JobDetails() {
         eyebrow={job.category || "Trabalho"}
         title={job.title}
         action={
-          job.visibility !== "private" && (
+          job.visibility === "private" ? (
+            <span className="tag gold">Só por convite</span>
+          ) : (
             <ShareButton jobId={id} title={job.title} />
           )
         }
@@ -571,7 +574,7 @@ export function JobDetails() {
             <div className="floating-action">
               <span className="price">{payLabel(job)}</span>
               <button className="btn gold" disabled={busy}>
-                {busy ? "A enviar…" : "Candidatar-me"}
+                {busy ? "A enviar…" : invited ? "Aceitar convite" : "Candidatar-me"}
               </button>
             </div>
           </form>
@@ -591,6 +594,68 @@ export function JobDetails() {
         </div>
       )}
     </>
+  );
+}
+// Quem vê a oferta e que favoritos recebem convite. Convidar não é contratar:
+// os convidados candidatam-se e a empresa escolhe.
+function Audience({ form, setForm }) {
+  const { favorites = [] } = useMarket();
+  const invite = form.invite || [];
+  const toggle = (id) =>
+    setForm({
+      ...form,
+      invite: invite.includes(id) ? invite.filter((x) => x !== id) : [...invite, id],
+    });
+  return (
+    <fieldset className="wide audience">
+      <legend>Quem pode ver esta oferta</legend>
+      <label className="choice">
+        <input
+          type="radio"
+          name="visibility"
+          checked={form.visibility !== "private"}
+          onChange={() => setForm({ ...form, visibility: "public" })}
+        />
+        <span>
+          <strong>Pública</strong>
+          <small>Aparece a toda a gente no Explorar e pode ser partilhada.</small>
+        </span>
+      </label>
+      <label className="choice">
+        <input
+          type="radio"
+          name="visibility"
+          checked={form.visibility === "private"}
+          onChange={() => setForm({ ...form, visibility: "private" })}
+        />
+        <span>
+          <strong>Privada — só convidados</strong>
+          <small>Só as pessoas que convidares a veem e se podem candidatar.</small>
+        </span>
+      </label>
+      <p className="audience-title">
+        {form.visibility === "private" ? "Convidar (obrigatório)" : "Convidar favoritos (opcional)"}
+      </p>
+      {favorites.length ? (
+        <div className="invite-list">
+          {favorites.map((f) => (
+            <label className="choice compact" key={f.id}>
+              <input
+                type="checkbox"
+                checked={invite.includes(f.id)}
+                onChange={() => toggle(f.id)}
+              />
+              <span>{f.workerName || "Profissional"}</span>
+            </label>
+          ))}
+        </div>
+      ) : (
+        <p className="subtle">
+          Ainda não tens favoritos. Guarda profissionais nos favoritos a partir
+          do perfil deles para os poderes convidar.
+        </p>
+      )}
+    </fieldset>
   );
 }
 export function NewJob() {
@@ -696,6 +761,19 @@ export function NewJob() {
             {form.location} · {form.district}
           </p>
           <p style={{ whiteSpace: "pre-wrap" }}>{form.description}</p>
+          <p>
+            <strong>Quem vê: </strong>
+            {form.visibility === "private"
+              ? form.invite.length === 1
+                ? "só a pessoa convidada"
+                : `só as ${form.invite.length} pessoas convidadas`
+              : "toda a gente"}
+            {form.visibility !== "private" && form.invite?.length
+              ? form.invite.length === 1
+                ? " · 1 favorito recebe convite"
+                : ` · ${form.invite.length} favoritos recebem convite`
+              : ""}
+          </p>
           {[
             ["Pagamento", form.paymentTerms],
             ["Transporte", form.transport],
@@ -721,7 +799,11 @@ export function NewJob() {
         className="panel form-grid"
         onSubmit={(e) => {
           e.preventDefault();
-          const err = validateJob(form);
+          const err =
+            validateJob(form) ||
+            (form.visibility === "private" && !form.invite?.length
+              ? "Numa oferta privada, escolhe pelo menos uma pessoa para convidar."
+              : "");
           if (err) return setError(err);
           setError("");
           setPreview(true);
@@ -852,6 +934,7 @@ export function NewJob() {
             })}
           </Field>
         </div>
+        <Audience form={form} setForm={setForm} />
         <div className="wide actions">
           <button
             type="button"

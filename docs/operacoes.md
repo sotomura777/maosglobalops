@@ -91,6 +91,13 @@ Ver `docs/arquitetura-empresas.md`.
    node scripts/sync-from-app.mjs --project maosglobalops --app maosops --company "Mãos" --source-key ~/chaves/maosops-reader-key.json
    ```
 
+### Favoritos, convites e ofertas privadas
+
+- As empresas guardam profissionais nos favoritos (no perfil de cada um) e, ao publicar, escolhem quem convidar.
+- **Pública:** aparece a todos; os favoritos escolhidos recebem um convite na app e por email.
+- **Privada:** só os convidados a veem e se podem candidatar. Não tem ligação pública.
+- Um convite não é uma contratação: o convidado candidata-se e a empresa escolhe, como em qualquer oferta.
+
 ### Tratar uma denúncia
 
 Em **Administração → Denúncias**:

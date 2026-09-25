@@ -2,14 +2,20 @@ import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
-import { onDocumentWritten } from "firebase-functions/v2/firestore";
+import { onDocumentWritten, onDocumentCreated } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { defineSecret } from "firebase-functions/params";
 import { createMarketplace } from "./marketplace.js";
 import { createAdmin } from "./admin.js";
 import { createAccount } from "./account.js";
 import { refreshMarketStats } from "./stats.js";
-import { deliver, engagementNotice, resendSender, sendReminders } from "./mail.js";
+import {
+  deliver,
+  engagementNotice,
+  invitationNotice,
+  resendSender,
+  sendReminders,
+} from "./mail.js";
 initializeApp();
 const options = {
   region: "europe-west1",
@@ -81,6 +87,18 @@ export const marketStats = onSchedule(
   { schedule: "0 4 * * *", timeZone: "Europe/Lisbon", region: "europe-west1" },
   async () => {
     await refreshMarketStats(getFirestore(), Date.now());
+  },
+);
+export const invitationMail = onDocumentCreated(
+  {
+    document: "invitations/{id}",
+    region: "europe-west1",
+    maxInstances: 3,
+    secrets: [RESEND_API_KEY],
+  },
+  async (event) => {
+    const inv = event.data?.data();
+    if (inv) await deliver(getFirestore(), `inv-${event.id}`, invitationNotice(inv, APP_URL), sender());
   },
 );
 export const shiftReminders = onSchedule(

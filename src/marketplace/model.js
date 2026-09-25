@@ -166,6 +166,8 @@ export const emptyJob = (district = "") => ({
   transport: "",
   meal: "",
   equipment: "",
+  visibility: "public",
+  invite: [],
 });
 export const jobForm = (job) =>
   Object.fromEntries(

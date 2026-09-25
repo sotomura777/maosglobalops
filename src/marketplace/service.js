@@ -271,3 +271,19 @@ export const deleteMyAccount = (reason) =>
   contract({ operation: "deleteAccount", reason }, accountRights);
 export const getMarketStats = async () =>
   (await getDoc(doc(db, "marketStats", "current"))).data() || null;
+// Favoritos da empresa (privados) e convites recebidos pelo profissional.
+export const watchFavorites = (uid, cb, err) =>
+  onSnapshot(collection(db, "profiles", uid, "favorites"), (s) => cb(rows(s)), err);
+export const setFavorite = (uid, workerId, workerName, on) =>
+  on
+    ? setDoc(doc(db, "profiles", uid, "favorites", workerId), {
+        workerName: String(workerName || "").slice(0, 120),
+        at: serverTimestamp(),
+      })
+    : deleteDoc(doc(db, "profiles", uid, "favorites", workerId));
+export const watchInvitations = (uid, cb, err) =>
+  onSnapshot(
+    query(collection(db, "invitations"), where("workerId", "==", uid)),
+    (s) => cb(rows(s)),
+    err,
+  );

@@ -42,7 +42,13 @@ service cloud.firestore {
       }
       match /jobDrafts/{draftId} {
         allow read, delete: if self(uid) && kind('company');
-        allow create, update: if self(uid) && kind('company') && request.resource.data.keys().hasOnly(['form','updatedAt']) && request.resource.data.updatedAt == request.time && request.resource.data.form is map && request.resource.data.form.keys().hasOnly(['title','category','district','location','date','startTime','endTime','vacancies','rate','payType','paymentTerms','description','transport','meal','equipment']) && shortText(request.resource.data.form.get('title',''),120) && shortText(request.resource.data.form.get('description',''),5000);
+        allow create, update: if self(uid) && kind('company') && request.resource.data.keys().hasOnly(['form','updatedAt']) && request.resource.data.updatedAt == request.time && request.resource.data.form is map && request.resource.data.form.keys().hasOnly(['title','category','district','location','date','startTime','endTime','vacancies','rate','payType','paymentTerms','description','transport','meal','equipment','visibility','invite']) && request.resource.data.form.get('invite',[]) is list && request.resource.data.form.get('invite',[]).size() <= 100 && shortText(request.resource.data.form.get('title',''),120) && shortText(request.resource.data.form.get('description',''),5000);
+      }
+      // Favoritos da empresa: privados, só ela os vê.
+      match /favorites/{workerId} {
+        allow read, delete: if self(uid) && kind('company');
+        allow create, update: if self(uid) && kind('company') && request.resource.data.keys().hasOnly(['workerName','at']) &&
+          shortText(request.resource.data.workerName, 120) && request.resource.data.at == request.time;
       }
       match /savedJobs/{jobId} {
         allow read, delete: if self(uid);
@@ -88,6 +94,10 @@ service cloud.firestore {
     // Passagem de staff para a app própria da empresa: só a empresa e a pessoa leem. Só o servidor escreve.
     match /handovers/{id} {
       allow read: if signed() && (resource.data.companyId == request.auth.uid || resource.data.workerId == request.auth.uid);
+    }
+    // Convites para ofertas: a empresa e a pessoa convidada. Só o servidor escreve.
+    match /invitations/{id} {
+      allow read: if signed() && (resource.data.workerId == request.auth.uid || resource.data.companyId == request.auth.uid);
     }
     // Médias de €/h do mercado (calculadas no servidor a partir das ofertas).
     match /marketStats/{id} { allow read: if signed(); }

@@ -108,6 +108,21 @@ export function reminderNotice(a, id, appUrl) {
   };
 }
 
+export function invitationNotice(inv, appUrl) {
+  return {
+    uid: inv.workerId,
+    subject: `A ${inv.companyName} convidou-te: ${inv.title}`,
+    text: message(
+      [
+        `A ${inv.companyName} convidou-te para "${inv.title}"${inv.date ? ` (${inv.date})` : ""}.`,
+        inv.private ? "Esta oferta é só para convidados." : "",
+        "Se te interessar, candidata-te na app: a empresa escolhe entre quem aceitar o convite.",
+      ],
+      `${appUrl}/app/trabalhos/${inv.jobId}`,
+    ),
+  };
+}
+
 function message(lines, url) {
   return [
     "Olá,",
