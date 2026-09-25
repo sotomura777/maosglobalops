@@ -12,6 +12,7 @@ import { db } from "./services/firebase";
 import { watchAuth, signOut } from "./services/authService";
 import LandingPage from "./pages/LandingPage";
 import AccountPage from "./pages/AccountPage";
+import LegalPage from "./pages/LegalPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import RegisterCompanyPage from "./pages/RegisterCompanyPage";
@@ -135,6 +136,8 @@ const router = createBrowserRouter(
     <>
       <Route path="/" element={<LandingPage />} />
       <Route path="/recuperar-password" element={<AccountPage recovery />} />
+      <Route path="/privacidade" element={<LegalPage kind="privacy" />} />
+      <Route path="/termos" element={<LegalPage kind="terms" />} />
       <Route path="/entrar" element={<LoginPage />} />
       <Route path="/registar" element={<RegisterPage />} />
       <Route path="/registar-empresa" element={<RegisterCompanyPage />} />

@@ -20,7 +20,11 @@ Manual para pôr a fase 2 em produção e mantê-la a funcionar. Tudo o que est�
    - Em App Check, registar a app web com reCAPTCHA Enterprise.
    - Pôr a chave de site no `.env` da raiz: `VITE_APPCHECK_SITE_KEY=...`. É pública, tal como as outras `VITE_*`.
    - Não ligar ainda a imposição (ver secção 4).
-5. **Verificação local:**
+5. **Páginas legais.** `/privacidade` e `/termos` são rascunhos (`src/pages/LegalPage.jsx`). Antes de lançar:
+   - preencher o responsável pelo tratamento (nome e NIF) e o email de contacto no topo do ficheiro;
+   - rever o texto com um jurista;
+   - confirmar a região do Firestore, se quiseres dizer na política que os dados ficam na UE.
+6. **Verificação local:**
    ```sh
    npm ci && npm ci --prefix functions
    npm test && npm run test:emulators && npm run build

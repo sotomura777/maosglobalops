@@ -19,6 +19,7 @@ import { db, functions, auth } from "../services/firebase";
 import { httpsCallable } from "firebase/functions";
 const contracting = httpsCallable(functions, "contracting");
 const administration = httpsCallable(functions, "admin");
+const accountRights = httpsCallable(functions, "account");
 async function contract(data, callable = contracting) {
   try {
     await auth.currentUser?.getIdToken(true);
@@ -264,3 +265,6 @@ export const createReport = (uid, { targetType, targetId, engagementId, reason, 
     status: "open",
     createdAt: serverTimestamp(),
   });
+export const exportMyData = () => contract({ operation: "exportData" }, accountRights);
+export const deleteMyAccount = (reason) =>
+  contract({ operation: "deleteAccount", reason }, accountRights);

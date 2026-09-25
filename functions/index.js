@@ -7,6 +7,7 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import { defineSecret } from "firebase-functions/params";
 import { createMarketplace } from "./marketplace.js";
 import { createAdmin } from "./admin.js";
+import { createAccount } from "./account.js";
 import { deliver, engagementNotice, resendSender, sendReminders } from "./mail.js";
 initializeApp();
 const options = {
@@ -34,6 +35,11 @@ const guarded = (handler) => async (request) => {
 export const contracting = onCall(
   options,
   guarded(createMarketplace(getFirestore())),
+);
+// Direitos RGPD: exportar e apagar. Apagar pode tocar em muitos documentos, daí o tempo maior.
+export const account = onCall(
+  { ...options, timeoutSeconds: 300, memory: "512MiB" },
+  guarded(createAccount(getFirestore(), getAuth())),
 );
 export const admin = onCall(
   { ...options, maxInstances: 1 },

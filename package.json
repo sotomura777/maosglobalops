@@ -12,7 +12,7 @@
     "test:e2e": "playwright test",
     "test:emulators": "firebase emulators:exec --only auth,firestore,functions --project demo-globalops --config firebase.test.json \"npm run test:rules && npm run test:contracting && npm run test:e2e\"",
     "format": "prettier --write src/marketplace src/App.jsx tests playwright.config.js",
-    "test:contracting": "node --test --test-concurrency=1 tests/contracting.test.mjs tests/admin.test.mjs tests/mail-delivery.test.mjs"
+    "test:contracting": "node --test --test-concurrency=1 tests/contracting.test.mjs tests/admin.test.mjs tests/mail-delivery.test.mjs tests/account.test.mjs"
   },
   "dependencies": {
     "@fontsource/dm-mono": "^5.3.0",

@@ -41,7 +41,7 @@ export default function RegisterCompanyPage() {
           <input type="password" value={form.password} onChange={set('password')} autoComplete="new-password" /></label>
         <label style={{ display: 'flex', gap: 8, fontSize: 12, color: 'var(--text-3)', cursor: 'pointer', alignItems: 'flex-start' }}>
           <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} style={{ width: 'auto', marginTop: 2 }} />
-          <span>Aceito o tratamento dos dados da empresa para gestão da conta (RGPD).</span>
+          <span>Aceito os <Link to="/termos" target="_blank">termos</Link> e o tratamento dos dados da empresa para gestão da conta, como descrito na <Link to="/privacidade" target="_blank">política de privacidade</Link>.</span>
         </label>
         <button type="submit" disabled={saving} style={{ background: 'var(--text)', color: '#0A0A0B', fontWeight: 700, border: 'none', borderRadius: 99, padding: '15px 18px', opacity: saving ? 0.6 : 1 }}>
           {saving ? 'A criar…' : 'Registar empresa'}

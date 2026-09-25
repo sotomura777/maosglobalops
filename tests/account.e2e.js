@@ -54,3 +54,40 @@ test("recuperação de palavra-passe emite ligação válida e mantém resposta 
     ),
   ).toBe(true);
 });
+
+test("RGPD: páginas legais públicas, descarregar os dados e apagar a conta", async ({
+  page,
+  request,
+}, testInfo) => {
+  await page.goto("/privacidade");
+  await expect(page.getByRole("heading", { name: "Política de privacidade" })).toBeVisible();
+  await page.getByRole("link", { name: "Ler os termos de utilização" }).click();
+  await expect(page.getByRole("heading", { name: "Termos de utilização" })).toBeVisible();
+  const email = `rgpd-${Date.now()}@example.com`;
+  await page.goto("/registar");
+  await page.getByLabel("Nome", { exact: true }).fill("Rita Dados");
+  await page.getByLabel("Email", { exact: true }).fill(email);
+  await page.getByLabel("Password (mín. 8)").fill("TesteSeguro123!");
+  await page.getByRole("checkbox").check();
+  await page.getByRole("button", { name: "Criar perfil", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Olá, Rita." })).toBeVisible();
+  await page.goto("/app/conta");
+  const downloading = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Descarregar os meus dados" }).click();
+  const file = await (await downloading).path();
+  const { readFile } = await import("node:fs/promises");
+  const exported = JSON.parse(await readFile(file, "utf8"));
+  expect(exported.profile.email).toBe(email);
+  await page.getByRole("button", { name: "Apagar a minha conta" }).click();
+  const confirm = page.getByRole("button", { name: "Apagar definitivamente" });
+  await expect(confirm).toBeDisabled();
+  await page.getByLabel("Escreve APAGAR para confirmar").fill("APAGAR");
+  await page.screenshot({ path: testInfo.outputPath("apagar-conta.png"), fullPage: true });
+  await confirm.click();
+  await expect(page).toHaveURL(/127\.0\.0\.1:5175\/$/);
+  const lookup = await request.post(
+    "http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/projects/demo-globalops/accounts:lookup",
+    { headers: { Authorization: "Bearer owner" }, data: { email: [email] } },
+  );
+  expect((await lookup.json()).users).toBeUndefined();
+});

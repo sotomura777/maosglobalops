@@ -97,7 +97,11 @@ export default function LandingPage() {
 
       <footer style={{ marginTop: 'auto', padding: '32px 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <span style={{ font: "800 14px/1 'Public Sans', sans-serif", letterSpacing: '.04em', color: 'var(--text-3)' }}>MAOS<span style={{ color: 'var(--text-4)' }}>GLOBAL</span>OPS</span>
-        <span style={{ fontSize: 12, color: 'var(--text-5)' }}>© 2026 · Plataforma em construção</span>
+        <span style={{ fontSize: 12, color: 'var(--text-5)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+          <Link to="/privacidade" style={{ color: 'var(--text-4)' }}>Privacidade</Link>
+          <Link to="/termos" style={{ color: 'var(--text-4)' }}>Termos</Link>
+          <span>© 2026 · Plataforma em construção</span>
+        </span>
       </footer>
     </div>
   );
