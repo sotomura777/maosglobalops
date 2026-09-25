@@ -13,6 +13,7 @@ import {
   getReputation,
   endorse,
   getCompanyStatus,
+  confirmHandover,
 } from "./service";
 import { useMarket } from "./context";
 import { dateLabel, attendanceRate } from "./model";
@@ -165,7 +166,9 @@ export function PublicProfile() {
       getWorkHistory(id),
       getHistoryClaims(id).catch(() => []),
       getReputation(id).catch(() => ({})),
-      getCompanyStatus(id).catch(() => "pending"),
+      getCompanyStatus(id)
+        .then((s) => s.verification)
+        .catch(() => "pending"),
     ])
       .then(([p, v, r, h, c, rp, cs]) => {
         if (active) {
@@ -1179,6 +1182,92 @@ export function Approvals() {
           Quando um profissional indicar que trabalhou contigo, o pedido de
           confirmação aparece aqui.
         </Empty>
+      )}
+    </>
+  );
+}
+
+// Enquanto a app da empresa não cria as contas sozinha, a empresa cria-as à mão e confirma aqui.
+export function StaffHandover() {
+  const { handovers = [], ownApp } = useMarket();
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+  const appName = ownApp?.name || "vossa app";
+  const toCreate = handovers.filter((h) => h.status === "to_create");
+  const toDelete = handovers.filter((h) => h.status === "to_delete");
+  const done = async (h, action) => {
+    setBusy(h.id);
+    setError("");
+    try {
+      await confirmHandover(h.workerId, action);
+    } catch (e) {
+      setError(e.message || "Não foi possível guardar.");
+    } finally {
+      setBusy("");
+    }
+  };
+  const card = (h, action) => (
+    <div className="panel" key={h.id} style={{ marginTop: 16 }}>
+      <div className="row between wrap">
+        <div>
+          <strong>{h.workerName}</strong>
+          <p className="subtle">
+            {h.email || "Sem email"} · {h.phone || "Sem telefone"}
+          </p>
+          <p className="subtle">
+            {h.engagementIds?.length === 1
+              ? "1 trabalho aceite"
+              : `${h.engagementIds?.length || 0} trabalhos aceites`}
+          </p>
+        </div>
+        <Link className="quiet" to={`/app/profissionais/${h.workerId}`}>
+          Ver perfil →
+        </Link>
+      </div>
+      <div className="actions" style={{ marginTop: 12 }}>
+        <button
+          className={`btn ${action === "created" ? "gold" : "secondary"}`}
+          disabled={!!busy}
+          onClick={() => done(h, action)}
+        >
+          {busy === h.id
+            ? "A guardar…"
+            : action === "created"
+              ? "Já criei a conta"
+              : "Já apaguei a conta"}
+        </button>
+      </div>
+    </div>
+  );
+  return (
+    <>
+      <Heading eyebrow="Área da empresa" title={`Staff para a ${appName}`} />
+      <p className="subtle">
+        Quando aceitas alguém na GlobalOps, essa pessoa passa a precisar de
+        conta de staff na {appName}. Cria-a lá com estes dados e confirma aqui.
+      </p>
+      <ErrorBox>{error}</ErrorBox>
+      <h3 className="section-title" style={{ marginTop: 24 }}>
+        Criar na {appName}
+      </h3>
+      {toCreate.length ? (
+        toCreate.map((h) => card(h, "created"))
+      ) : (
+        <Empty title="Nada para criar">
+          As pessoas que aceitares aparecem aqui.
+        </Empty>
+      )}
+      <h3 className="section-title" style={{ marginTop: 28 }}>
+        Apagar na {appName}
+      </h3>
+      <p className="subtle">
+        Pessoas que recusaram antes de trabalhar convosco. Apaga a conta que
+        criaste para elas: não há motivo para guardar os dados.
+      </p>
+      {toDelete.length ? (
+        toDelete.map((h) => card(h, "deleted"))
+      ) : (
+        <Empty title="Nada para apagar">Está tudo em dia.</Empty>
       )}
     </>
   );

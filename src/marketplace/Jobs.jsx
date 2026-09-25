@@ -17,6 +17,7 @@ import {
   closeJob,
   saveDraft,
   getDraft,
+  getCompanyStatus,
 } from "./service";
 import {
   payLabel,
@@ -331,6 +332,18 @@ export function JobDetails() {
       },
     );
   }, [id]);
+  const [companyApp, setCompanyApp] = useState(null);
+  const companyId = job?.companyId;
+  useEffect(() => {
+    if (!companyId) return;
+    let active = true;
+    getCompanyStatus(companyId)
+      .then((s) => active && setCompanyApp(s.app))
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [companyId]);
   const application = applications.find((a) => a.jobId === id);
   if (loading) return <p role="status">A carregar trabalho…</p>;
   if (!job)
@@ -502,6 +515,14 @@ export function JobDetails() {
               A candidatura partilha o teu nome. Se o teu perfil estiver
               público, a empresa também pode consultá-lo.
             </p>
+            {companyApp && (
+              <p className="notice" role="note">
+                A {job.companyName} gere os trabalhos na app{" "}
+                <strong>{companyApp.name}</strong>. Se fores aceite, a empresa
+                cria-te uma conta de staff lá e recebe o teu nome, email e
+                telefone.
+              </p>
+            )}
             <div className="floating-action">
               <span className="price">{payLabel(job)}</span>
               <button className="btn gold" disabled={busy}>

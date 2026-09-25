@@ -84,6 +84,7 @@ export function createAdmin(db, auth, clock = Date.now) {
           createdAt: p.createdAt || "",
           suspended: p.suspended === true,
           verification: statuses[i].data()?.verification || "pending",
+          app: statuses[i].data()?.app || null,
           note: p.companyVerificationNote || "",
         };
       });
@@ -96,14 +97,31 @@ export function createAdmin(db, auth, clock = Date.now) {
       if (profile.data()?.kind !== "company")
         fail("Esta conta não é uma empresa.", "invalid-argument");
       const batch = db.batch();
-      batch.set(db.doc(`companyStatus/${uid}`), {
-        verification: decision,
-        updatedAt: FieldValue.serverTimestamp(),
-      });
+      // merge: rever a validação não pode apagar a app própria já configurada.
+      batch.set(
+        db.doc(`companyStatus/${uid}`),
+        { verification: decision, updatedAt: FieldValue.serverTimestamp() },
+        { merge: true },
+      );
       batch.update(profile.ref, { companyVerificationNote: note });
       log(batch, actorId, operation, uid, `${decision} ${note}`.trim());
       await batch.commit();
       return { ok: true, verification: decision };
+    }
+    if (operation === "setCompanyApp") {
+      const uid = id(data.uid);
+      const name = text(data.name ?? "", 60);
+      const url = text(data.url ?? "", 300);
+      if (name && !/^https:\/\/[^\s]+$/.test(url))
+        fail("Indica o endereço da app, a começar por https://", "invalid-argument");
+      const ref = db.doc(`companyStatus/${uid}`);
+      if ((await ref.get()).data()?.verification !== "verified")
+        fail("Valida primeiro a empresa.");
+      const batch = db.batch();
+      batch.update(ref, { app: name ? { name, url } : FieldValue.delete() });
+      log(batch, actorId, operation, uid, name ? `${name} ${url}` : "sem app");
+      await batch.commit();
+      return { ok: true };
     }
     if (operation === "findUser") {
       const email = text(data.email, 320, true).toLowerCase();

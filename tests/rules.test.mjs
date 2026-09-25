@@ -418,6 +418,25 @@ test("the owner switches email notices on or off, and nobody else can", async ()
   await assertFails(updateDoc(doc(company, "profiles", "worker"), { emailNotifications: true }));
   await assertSucceeds(updateDoc(doc(worker, "profiles", "worker"), { emailNotifications: true }));
 });
+test("handover requests are visible only to the company and the person", async () => {
+  await seed("handovers", "company_worker", {
+    companyId: "company",
+    workerId: "worker",
+    status: "to_create",
+    email: "worker@example.com",
+  });
+  await assertSucceeds(getDoc(doc(company, "handovers", "company_worker")));
+  await assertSucceeds(getDoc(doc(worker, "handovers", "company_worker")));
+  await assertFails(getDoc(doc(stranger, "handovers", "company_worker")));
+  await assertSucceeds(
+    getDocs(query(collection(company, "handovers"), where("companyId", "==", "company"))),
+  );
+  await assertFails(getDocs(collection(stranger, "handovers")));
+  await assertFails(updateDoc(doc(company, "handovers", "company_worker"), { status: "created" }));
+  await assertFails(
+    setDoc(doc(worker, "handovers", "company_worker2"), { companyId: "company", workerId: "worker" }),
+  );
+});
 test("company validation and suspension are set only by the administration", async () => {
   await assertFails(
     setDoc(doc(company, "companyStatus", "company"), { verification: "verified" }),

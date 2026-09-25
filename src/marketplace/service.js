@@ -236,9 +236,22 @@ export const review = (a, uid, rating, text) =>
   });
 export const adminApi = (operation, data = {}) =>
   contract({ ...data, operation }, administration);
-export const getCompanyStatus = async (uid) =>
-  (await getDoc(doc(db, "companyStatus", uid))).data()?.verification ||
-  "pending";
+export const getCompanyStatus = async (uid) => {
+  const s = (await getDoc(doc(db, "companyStatus", uid))).data();
+  return { verification: s?.verification || "pending", app: s?.app || null };
+};
+// Pedidos de passagem para a app própria da empresa (a empresa vê os seus; a pessoa, os dela).
+export const watchHandovers = (uid, company, cb, err) =>
+  onSnapshot(
+    query(
+      collection(db, "handovers"),
+      where(company ? "companyId" : "workerId", "==", uid),
+    ),
+    (s) => cb(rows(s)),
+    err,
+  );
+export const confirmHandover = (workerId, done) =>
+  contract({ operation: "handover", workerId, done });
 // O id liga quem denuncia ao alvo: repetir não cria uma segunda denúncia.
 export const createReport = (uid, { targetType, targetId, engagementId, reason, text }) =>
   setDoc(doc(db, "reports", `${uid}_${targetType}_${targetId}`), {

@@ -166,3 +166,23 @@ test("reports are listed with context, resolved with a note and can close the jo
   );
   assert.equal((await asAdmin({ operation: "stats" })).reportsOpen, 1);
 });
+
+test("only validated companies get an own-app link, always over https", async () => {
+  await db.doc("profiles/newco").set({ kind: "company", name: "Nova", email: "n@example.com" });
+  await rejected(
+    asAdmin({ operation: "setCompanyApp", uid: "newco", name: "NovaOps", url: "https://novaops.example" }),
+    /Valida primeiro/,
+  );
+  await rejected(
+    asAdmin({ operation: "setCompanyApp", uid: "acme", name: "AcmeOps", url: "http://acme.example" }),
+    /https/,
+  );
+  await asAdmin({ operation: "setCompanyApp", uid: "acme", name: "AcmeOps", url: "https://acme.example" });
+  // Reviewing the validation again keeps the app link.
+  await asAdmin({ operation: "verifyCompany", uid: "acme", decision: "approve", note: "Revisto" });
+  let acme = (await asAdmin({ operation: "listCompanies" })).find((c) => c.uid === "acme");
+  assert.deepEqual(acme.app, { name: "AcmeOps", url: "https://acme.example" });
+  await asAdmin({ operation: "setCompanyApp", uid: "acme", name: "" });
+  acme = (await asAdmin({ operation: "listCompanies" })).find((c) => c.uid === "acme");
+  assert.equal(acme.app, null);
+});

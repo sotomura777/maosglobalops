@@ -9,7 +9,13 @@ import { JobCard } from "./Jobs";
 import { useJobDetails } from "./useJobs";
 export default function Home() {
   const { user, profile } = useAuth();
-  const { applications, loading } = useMarket();
+  const { applications, loading, handovers = [], ownApp } = useMarket();
+  const handoverTodo = handovers.filter((h) =>
+    ["to_create", "to_delete"].includes(h.status),
+  ).length;
+  const myCompanies = handovers.filter((h) =>
+    ["to_create", "created"].includes(h.status),
+  );
   const company = profile.kind === "company";
   const [jobs, setJobs] = useState(null);
   const [error, setError] = useState("");
@@ -89,6 +95,41 @@ export default function Home() {
             ))}
           </section>
         )
+      )}
+      {company && ownApp && handoverTodo > 0 && (
+        <Link className="setup-strip" to="/app/equipa">
+          <div>
+            <strong>
+              {handoverTodo === 1
+                ? `1 pessoa para tratar na ${ownApp.name}`
+                : `${handoverTodo} pessoas para tratar na ${ownApp.name}`}
+            </strong>
+            <p className="subtle">Cria ou apaga as contas de staff e confirma aqui.</p>
+          </div>
+          <Icon name="arrow" />
+        </Link>
+      )}
+      {!company && myCompanies.length > 0 && (
+        <section className="panel">
+          <h2 className="section-title">As minhas empresas</h2>
+          {myCompanies.map((h) => (
+            <div className="review row between wrap" key={h.id}>
+              <div>
+                <strong>{h.companyName}</strong>
+                <p>
+                  {h.status === "created"
+                    ? `Tens conta de staff na ${h.appName}.`
+                    : `A ${h.companyName} está a criar a tua conta na ${h.appName}.`}
+                </p>
+              </div>
+              {h.status === "created" && /^https:\/\//.test(h.appUrl) && (
+                <a className="btn secondary" href={h.appUrl} target="_blank" rel="noreferrer">
+                  Abrir {h.appName} ↗
+                </a>
+              )}
+            </div>
+          ))}
+        </section>
       )}
       {next && (
         <section className="panel next-job">

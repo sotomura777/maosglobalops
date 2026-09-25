@@ -34,6 +34,7 @@ const Directory = page(() => import("./marketplace/Profiles"), "Directory");
 const PublicProfile = page(() => import("./marketplace/Profiles"), "PublicProfile");
 const EditProfile = page(() => import("./marketplace/Profiles"), "EditProfile");
 const Approvals = page(() => import("./marketplace/Profiles"), "Approvals");
+const StaffHandover = page(() => import("./marketplace/Profiles"), "StaffHandover");
 const AdminPage = page(() => import("./marketplace/Admin"), "AdminPage");
 import "./marketplace/market.css";
 const AuthCtx = createContext({ user: null, profile: null, loading: true });
@@ -152,6 +153,7 @@ const router = createBrowserRouter(
           <Route path="conta" element={<AccountPage />} />
           <Route path="perfil" element={<EditProfile />} />
           <Route path="aprovacoes" element={<Approvals />} />
+          <Route path="equipa" element={<StaffHandover />} />
           <Route path="admin" element={<AdminPage />} />
           <Route
             path="canais"

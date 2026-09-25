@@ -4,6 +4,8 @@ import {
   watchRead,
   watchSaved,
   watchApprovalRequests,
+  watchHandovers,
+  getCompanyStatus,
 } from "./service";
 import { timestampMillis } from "./model";
 import { useAuth } from "../App";
@@ -15,6 +17,8 @@ export function MarketProvider({ children }) {
   const [saved, setSaved] = useState([]);
   const [read, setRead] = useState({});
   const [approvals, setApprovals] = useState([]);
+  const [handovers, setHandovers] = useState([]);
+  const [ownApp, setOwnApp] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   useEffect(() => {
@@ -23,6 +27,8 @@ export function MarketProvider({ children }) {
     setSaved([]);
     setRead({});
     setApprovals([]);
+    setHandovers([]);
+    setOwnApp(null);
     setError("");
     const fail = () => {
       setError(
@@ -45,7 +51,12 @@ export function MarketProvider({ children }) {
       ...(profile.kind === "company"
         ? [watchApprovalRequests(user.uid, setApprovals, () => {})]
         : []),
+      watchHandovers(user.uid, profile.kind === "company", setHandovers, () => {}),
     ];
+    if (profile.kind === "company")
+      getCompanyStatus(user.uid)
+        .then((s) => setOwnApp(s.app))
+        .catch(() => {});
     return () => stops.forEach((stop) => stop());
   }, [user.uid, profile.kind]);
   const unread = applications.filter((a) => {
@@ -72,6 +83,8 @@ export function MarketProvider({ children }) {
         unread,
         unreadMessages,
         approvals,
+        handovers,
+        ownApp,
         loading,
         error,
       }}

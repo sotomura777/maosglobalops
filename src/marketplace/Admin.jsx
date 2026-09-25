@@ -139,6 +139,7 @@ function Companies() {
   const [{ data, error, loading }, reload] = useAdminQuery("listCompanies");
   const [filter, setFilter] = useState("pending");
   const [notes, setNotes] = useState({});
+  const [apps, setApps] = useState({});
   const [busy, setBusy] = useState("");
   const [actionError, setActionError] = useState("");
   const decide = async (uid, decision) => {
@@ -146,6 +147,19 @@ function Companies() {
     setActionError("");
     try {
       await adminApi("verifyCompany", { uid, decision, note: notes[uid] || "" });
+      reload();
+    } catch (e) {
+      setActionError(e.message);
+    } finally {
+      setBusy("");
+    }
+  };
+  const saveApp = async (c) => {
+    const app = apps[c.uid] || c.app || { name: "", url: "" };
+    setBusy(c.uid);
+    setActionError("");
+    try {
+      await adminApi("setCompanyApp", { uid: c.uid, name: app.name.trim(), url: app.url.trim() });
       reload();
     } catch (e) {
       setActionError(e.message);
@@ -216,6 +230,48 @@ function Companies() {
                 placeholder="Ex.: NIF 500000000 confirmado no portal"
               />
             </Field>
+            {c.verification === "verified" && (
+              <div className="stack">
+                <div className="grid-two">
+                  <Field label="App própria (nome)">
+                    <input
+                      maxLength={60}
+                      value={(apps[c.uid] || c.app || { name: "" }).name}
+                      onChange={(e) =>
+                        setApps({
+                          ...apps,
+                          [c.uid]: { ...(apps[c.uid] || c.app || { url: "" }), name: e.target.value },
+                        })
+                      }
+                      placeholder="Ex.: MaosOps (vazio = sem app)"
+                    />
+                  </Field>
+                  <Field label="Endereço da app">
+                    <input
+                      type="url"
+                      maxLength={300}
+                      value={(apps[c.uid] || c.app || { url: "" }).url}
+                      onChange={(e) =>
+                        setApps({
+                          ...apps,
+                          [c.uid]: { ...(apps[c.uid] || c.app || { name: "" }), url: e.target.value },
+                        })
+                      }
+                      placeholder="https://…"
+                    />
+                  </Field>
+                </div>
+                <div className="actions">
+                  <button
+                    className="btn secondary"
+                    disabled={!!busy || loading}
+                    onClick={() => saveApp(c)}
+                  >
+                    Guardar app
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="actions">
               <button
                 className="btn gold"

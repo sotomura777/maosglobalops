@@ -85,6 +85,10 @@ service cloud.firestore {
     match /validations/{id} { allow read: if self(resource.data.workerId) || (signed() && get(/databases/$(database)/documents/publicProfiles/$(resource.data.workerId)).data.public == true); }
     // Contadores de fiabilidade (faltas, atrasos, cancelamentos, concluídos). Só o servidor escreve.
     match /reputations/{uid} { allow read: if self(uid) || (signed() && get(/databases/$(database)/documents/publicProfiles/$(uid)).data.public == true); }
+    // Passagem de staff para a app própria da empresa: só a empresa e a pessoa leem. Só o servidor escreve.
+    match /handovers/{id} {
+      allow read: if signed() && (resource.data.companyId == request.auth.uid || resource.data.workerId == request.auth.uid);
+    }
     // Validação das empresas pela administração. Só o servidor escreve.
     match /companyStatus/{uid} { allow read: if signed(); }
     // Histórico de trabalhos verificados. Escrito só pelo servidor ao concluir ou ao aprovar.

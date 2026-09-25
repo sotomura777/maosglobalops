@@ -230,7 +230,35 @@ test("empresa e profissional: publicar, pesquisar, guardar, contratar, conversar
       exact: true,
     }),
   ).toBeVisible();
+  // Aurora has its own staff app (set by the administration; seeded here through the emulator).
+  const owner = { Authorization: "Bearer owner" };
+  const lookup = await company.request.post(
+    "http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/projects/demo-globalops/accounts:lookup",
+    { headers: owner, data: { email: [`empresa-${suffix}@example.com`] } },
+  );
+  const auroraId = (await lookup.json()).users[0].localId;
+  const seeded = await company.request.patch(
+    `http://127.0.0.1:8080/v1/projects/demo-globalops/databases/(default)/documents/companyStatus/${auroraId}`,
+    {
+      headers: owner,
+      data: {
+        fields: {
+          app: {
+            mapValue: {
+              fields: {
+                name: { stringValue: "MaosOps" },
+                url: { stringValue: "https://maosops.example" },
+              },
+            },
+          },
+        },
+      },
+    },
+  );
+  expect(seeded.ok()).toBe(true);
   await worker.goto(jobPath);
+  // Before applying, the person is told a staff account will be created if accepted.
+  await expect(worker.getByRole("note")).toContainText("MaosOps");
   await worker
     .getByLabel("Mensagem (opcional)")
     .fill("Tenho experiência em galas e disponibilidade para este horário.");
@@ -261,6 +289,21 @@ test("empresa e profissional: publicar, pesquisar, guardar, contratar, conversar
   await expect(
     company.getByText("A proposta foi enviada.", { exact: false }),
   ).toBeVisible();
+  // The acceptance is the approval: Aurora now has to create Ana's MaosOps account.
+  await company.goto("/app/equipa");
+  const staff = company.locator(".panel").filter({ hasText: "Ana Silva" });
+  await expect(staff).toContainText(`ana-${suffix}@example.com`);
+  await company.screenshot({ path: testInfo.outputPath("staff-para-app.png"), fullPage: true });
+  await staff.getByRole("button", { name: "Já criei a conta" }).click();
+  await expect(company.getByText("Nada para criar")).toBeVisible();
+  await company.goto(engagementPath);
+  await worker.goto("/app");
+  await expect(worker.getByRole("heading", { name: "As minhas empresas" })).toBeVisible();
+  await expect(worker.getByRole("link", { name: "Abrir MaosOps ↗" })).toHaveAttribute(
+    "href",
+    "https://maosops.example",
+  );
+  await worker.screenshot({ path: testInfo.outputPath("minhas-empresas-mobile.png"), fullPage: true });
   await worker.goto(engagementPath);
   await worker
     .getByRole("button", { name: "Confirmar trabalho", exact: true })

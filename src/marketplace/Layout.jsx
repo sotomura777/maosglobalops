@@ -39,7 +39,17 @@ export function Icon({ name, ...props }) {
 }
 export default function Layout() {
   const { profile, user } = useAuth();
-  const { unread, unreadMessages, approvals = [], error } = useMarket();
+  const {
+    unread,
+    unreadMessages,
+    approvals = [],
+    handovers = [],
+    ownApp,
+    error,
+  } = useMarket();
+  const handoverTodo = handovers.filter((h) =>
+    ["to_create", "to_delete"].includes(h.status),
+  ).length;
   const company = profile.kind === "company";
   const admin = useIsAdmin();
   const nav = [
@@ -110,6 +120,12 @@ export default function Layout() {
             ))}
           </nav>
           <div className="sidebar-extra">
+            {company && ownApp && (
+              <Link to="/app/equipa">
+                Staff para a {ownApp.name}
+                {handoverTodo > 0 && <span className="nav-count">{handoverTodo}</span>}
+              </Link>
+            )}
             <Link to="/app/conta">Segurança da conta</Link>
             <Link to="/app/ganhos">Horas e ganhos</Link>
             <Link to="/app/canais">Comunidade</Link>

@@ -502,6 +502,85 @@ test("after the shift starts a confirmed job can no longer be cancelled", async 
   await change("company", "started_other", "confirmed", "no_show", "Não veio");
 });
 
+test("accepting someone at a company with its own app asks the company to create their staff account", async () => {
+  now = Date.parse("2094-01-01T09:00:00Z");
+  await db.doc("profiles/appco").set({ kind: "company", name: "Mãos" });
+  await db.doc("companyStatus/appco").set({
+    verification: "verified",
+    app: { name: "MaosOps", url: "https://maosops.example" },
+  });
+  await db.doc("profiles/staffer").set({
+    kind: "worker",
+    name: "Sara",
+    email: "sara@example.com",
+    phone: "910000000",
+  });
+  const handover = async () => (await db.doc("handovers/appco_staffer").get()).data();
+  const hire = async (jobId, date) => {
+    await call("appco", { operation: "publish", id: jobId, job: { ...job, date } });
+    await call("staffer", { operation: "apply", jobId, message: "" });
+    await change("appco", `${jobId}_staffer`, "pending", "accepted");
+  };
+  const mark = (uid, done, workerId = "staffer") =>
+    call(uid, { operation: "handover", workerId, done });
+  // Applying alone shares nothing.
+  await call("appco", { operation: "publish", id: "h0", job: { ...job, date: "2094-01-20" } });
+  await call("staffer", { operation: "apply", jobId: "h0", message: "" });
+  assert.equal(await handover(), undefined);
+  // The acceptance is the approval: the company receives what it needs to create the account.
+  await hire("h1", "2094-02-01");
+  let h = await handover();
+  assert.equal(h.status, "to_create");
+  assert.equal(h.email, "sara@example.com");
+  assert.equal(h.phone, "910000000");
+  assert.equal(h.appName, "MaosOps");
+  // A second acceptance reuses the same request.
+  await hire("h2", "2094-03-01");
+  assert.deepEqual((await handover()).engagementIds.sort(), ["h1_staffer", "h2_staffer"]);
+  // Declining one job while another is still active changes nothing.
+  await change("staffer", "h1_staffer", "accepted", "cancelled", "Não posso nesse dia");
+  assert.equal((await handover()).status, "to_create");
+  // Only the company itself confirms, only valid steps, and repeating is harmless.
+  await rejected(mark("company", "created"), /indisponível/);
+  await rejected(mark("appco", "deleted"), /estado/);
+  await mark("appco", "created");
+  await mark("appco", "created");
+  assert.equal((await handover()).status, "created");
+  // Declining the last active job before working: the account must be deleted.
+  await change("staffer", "h2_staffer", "accepted", "cancelled", "Arranjei outro");
+  h = await handover();
+  assert.equal(h.status, "to_delete");
+  assert.equal(h.email, "sara@example.com");
+  await mark("appco", "deleted");
+  h = await handover();
+  assert.equal(h.status, "deleted");
+  // Once deleted, the company no longer keeps the contacts here either.
+  assert.equal(h.email, "");
+  assert.equal(h.phone, "");
+  // A new acceptance starts over; after real work the account is never marked for deletion.
+  await hire("h3", "2094-04-01");
+  assert.equal((await handover()).status, "to_create");
+  await mark("appco", "created");
+  await change("staffer", "h3_staffer", "accepted", "confirmed");
+  now = scheduleOf({ ...job, date: "2094-04-01" }).endMs;
+  await call("appco", {
+    operation: "transition",
+    id: "h3_staffer",
+    expected: "confirmed",
+    next: "completion_requested",
+    note: "",
+  });
+  await change("staffer", "h3_staffer", "completion_requested", "completed");
+  assert.equal((await handover()).worked, true);
+  now = Date.parse("2094-05-01T09:00:00Z");
+  await hire("h4", "2094-06-01");
+  await change("staffer", "h4_staffer", "accepted", "cancelled", "Imprevisto");
+  assert.equal((await handover()).status, "created");
+  // Companies without their own app never create handover requests.
+  const others = await db.collection("handovers").where("companyId", "==", "company").get();
+  assert.equal(others.size, 0);
+});
+
 test("daily quotas stop floods without charging retries", async () => {
   now = Date.parse("2093-01-01T09:00:00Z");
   await db.doc("profiles/busy-co").set({ kind: "company", name: "Busy" });

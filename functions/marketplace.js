@@ -1,6 +1,7 @@
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { HttpsError } from "firebase-functions/v2/https";
 import { scheduleOf, overlaps, isLateCancellation } from "./schedule.js";
+import { planHandover, confirmHandover } from "./handover.js";
 export const fail = (message, code = "failed-precondition") => {
   throw new HttpsError(code, message);
 };
@@ -229,6 +230,8 @@ export function createMarketplace(db, clock = Date.now) {
       });
       return { ok: true };
     }
+    if (operation === "handover")
+      return confirmHandover(db, uid, id(data.workerId), data.done, fail);
     if (operation !== "transition")
       fail("Operação inválida.", "invalid-argument");
     const ref = db.doc(`engagements/${id(data.id)}`);
@@ -342,6 +345,7 @@ export function createMarketplace(db, clock = Date.now) {
           }
         }
       }
+      const handover = await planHandover(tx, db, a, snap.id, next);
       const patch = {
         status: next,
         previousStatus: a.status,
@@ -366,6 +370,7 @@ export function createMarketplace(db, clock = Date.now) {
         };
       if (attendance) patch.attendance = attendance;
       tx.update(ref, patch);
+      handover?.();
       tx.create(ref.collection("events").doc(), {
         from: a.status,
         to: next,
