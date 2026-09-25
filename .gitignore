@@ -9,3 +9,6 @@ dist/
 *-debug.*.log
 test-results/
 playwright-report/
+
+# Chaves de contas de serviço (nunca no repo)
+*-key.json

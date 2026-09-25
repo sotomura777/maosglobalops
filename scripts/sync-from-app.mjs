@@ -13,9 +13,12 @@
  *
  * Idempotente: doc id determinístico app-{app}-{workerDocId} com set(merge).
  * Credenciais: ADC (gcloud auth application-default login) com acesso aos 2 projetos.
+ * Recomendado: --source-key <ficheiro.json> de uma conta de serviço só com "Cloud Datastore
+ * Viewer" no projeto da app — assim é impossível escrever na app, mesmo com um bug aqui.
  * REGRA SAGRADA: este script NUNCA escreve na app de empresa — só na plataforma.
  */
-import { initializeApp, applicationDefault } from "firebase-admin/app";
+import { readFileSync } from "node:fs";
+import { initializeApp, applicationDefault, cert } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 
@@ -25,6 +28,9 @@ const args = process.argv.slice(2);
 const appProject = args[args.indexOf("--app") + 1];
 const companyName = args[args.indexOf("--company") + 1];
 const hubProject = args[args.indexOf("--project") + 1];
+const sourceKey = args.includes("--source-key")
+  ? args[args.indexOf("--source-key") + 1]
+  : null;
 const EXECUTE = args.includes("--execute");
 if (!appProject || !companyName || appProject.startsWith("--")) {
   console.error('uso: --project <maosglobalops|demo-globalops> --app <projectId> --company "Nome" [--execute]');
@@ -34,7 +40,12 @@ if (!["maosglobalops", "demo-globalops"].includes(hubProject))
   throw new Error("Indica --project maosglobalops ou demo-globalops.");
 
 const src = initializeApp(
-  { credential: applicationDefault(), projectId: appProject },
+  {
+    credential: sourceKey
+      ? cert(JSON.parse(readFileSync(sourceKey, "utf8")))
+      : applicationDefault(),
+    projectId: appProject,
+  },
   "src",
 );
 const hub = initializeApp(
