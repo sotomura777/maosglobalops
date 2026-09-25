@@ -5,6 +5,7 @@ import { signOut } from "../services/authService";
 import { useMarket } from "./context";
 import { initials } from "../ui";
 import { useIsAdmin } from "./useIsAdmin";
+import GlobalOpsLogo from "../brand/GlobalOpsLogo";
 export function Icon({ name, ...props }) {
   const paths = {
     home: "M3 10 12 3l9 7v10H6V10m3 10v-7h6v7",
@@ -67,8 +68,8 @@ export default function Layout() {
   return (
     <div className="market-shell">
       <header className="market-header">
-        <Link className="wordmark" to="/app">
-          global<span>ops</span>
+        <Link className="wordmark" to="/app" aria-label="MaosGlobalOps, início">
+          <GlobalOpsLogo variant="small" height={18} title="MaosGlobalOps" />
           <small>mercado de trabalho</small>
         </Link>
         <div className="header-actions">

@@ -59,7 +59,7 @@ Ver [arquitetura-empresas.md](arquitetura-empresas.md), secção "Contrato".
 ## 5. Marca (logo do Claude Design, 26 set)
 
 - [x] Ícones da app, favicon legível a 16 px, manifest e imagem de partilha, em preto e dourado. Para os gerar outra vez: `node scripts/brand/render-assets.mjs`.
-- [ ] Pôr o logo na interface (tema escuro): barra de topo, login e registo, carregamento, página inicial e rodapé, página pública da oferta. O componente já está em `src/brand/GlobalOpsLogo.jsx`.
+- [x] Pôr o logo na interface (tema escuro): barra de topo, login e registo, carregamento, página inicial e rodapé, página pública da oferta. O componente já está em `src/brand/GlobalOpsLogo.jsx`.
 - [ ] Modo claro (branco, bordeaux e dourado): tema em toda a app, com escolha do utilizador e o logo no tema `light`.
 - [ ] Se a app passar a ter domínio próprio, atualizar o `og:image` no `index.html`.
 

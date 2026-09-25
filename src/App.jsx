@@ -13,6 +13,7 @@ import { watchAuth, signOut } from "./services/authService";
 import LandingPage from "./pages/LandingPage";
 import AccountPage from "./pages/AccountPage";
 import LegalPage from "./pages/LegalPage";
+import GlobalOpsLogo from "./brand/GlobalOpsLogo";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import RegisterCompanyPage from "./pages/RegisterCompanyPage";
@@ -45,7 +46,8 @@ function Protected() {
   const { user, profile, loading, error } = useAuth();
   if (loading)
     return (
-      <div className="empty" role="status">
+      <div className="empty loading-screen" role="status">
+        <GlobalOpsLogo variant="symbol" height={72} title="" aria-hidden="true" />
         A abrir a tua área…
       </div>
     );

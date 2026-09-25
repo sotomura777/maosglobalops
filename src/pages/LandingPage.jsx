@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { S, MONO, LightThread, CompanyMark, GOLD_GRAD } from '../ui';
+import GlobalOpsLogo, { GlobeGrid } from '../brand/GlobalOpsLogo';
 
 const goldText = { background: GOLD_GRAD, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' };
 
@@ -18,7 +19,11 @@ export default function LandingPage() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', borderBottom: '1px solid var(--border)' }}>
-        <span style={{ font: "800 17px/1 'Public Sans', sans-serif", letterSpacing: '0.04em' }}>MAOS<span style={{ color: 'var(--gold)' }}>GLOBAL</span>OPS</span>
+        {/* Numa linha só há espaço no ecrã largo; no telemóvel fica a versão compacta. */}
+        <Link to="/" aria-label="MaosGlobalOps" style={{ display: 'flex' }}>
+          <GlobalOpsLogo className="logo-wide" variant="oneline" height={16} />
+          <GlobalOpsLogo className="logo-compact" variant="small" height={18} />
+        </Link>
         <nav style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <Link to="/entrar" style={{ color: 'var(--text-2)', textDecoration: 'none', fontSize: 13, fontWeight: 500, padding: '12px 16px' }}>Entrar</Link>
           <Link to="/registar" style={{ ...S.btn, textDecoration: 'none' }}>Criar perfil</Link>
@@ -27,8 +32,11 @@ export default function LandingPage() {
 
       {/* hero centrado com gradiente radial e fio de luz */}
       <main style={{ position: 'relative', overflow: 'hidden', padding: 'clamp(60px, 10vw, 92px) 24px clamp(52px, 8vw, 76px)', background: 'radial-gradient(70% 110% at 50% -10%, #1C1E22 0%, #0F1012 48%, #0A0A0B 100%)' }}>
+        <GlobeGrid />
         <LightThread inset={44} />
-        <div style={{ maxWidth: 660, margin: '0 auto', textAlign: 'center' }}>
+        <div style={{ position: 'relative', maxWidth: 660, margin: '0 auto', textAlign: 'center' }}>
+          {/* bg: a cor do fundo nesta zona, para a folga onde a órbita passa à frente do O */}
+          <GlobalOpsLogo variant="globe" height={56} colors={{ bg: '#15171A' }} style={{ margin: '0 auto 28px', display: 'block' }} />
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 9, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.09)', borderRadius: 99, padding: '8px 14px', marginBottom: 30 }}>
             <span style={{ width: 6, height: 6, borderRadius: 99, background: 'var(--green)' }} />
             <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)' }}>Aberto a staff e empresas — grátis</span>
@@ -96,7 +104,7 @@ export default function LandingPage() {
       </section>
 
       <footer style={{ marginTop: 'auto', padding: '32px 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-        <span style={{ font: "800 14px/1 'Public Sans', sans-serif", letterSpacing: '.04em', color: 'var(--text-3)' }}>MAOS<span style={{ color: 'var(--text-4)' }}>GLOBAL</span>OPS</span>
+        <GlobalOpsLogo variant="horizontal" height={28} colors={{ letters: 'var(--text-3)', text: 'var(--text-3)', o: 'var(--text-4)', accent: 'var(--text-4)', ops: 'var(--text-4)' }} />
         <span style={{ fontSize: 12, color: 'var(--text-5)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
           <Link to="/privacidade" style={{ color: 'var(--text-4)' }}>Privacidade</Link>
           <Link to="/termos" style={{ color: 'var(--text-4)' }}>Termos</Link>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { safeNext } from '../marketplace/model';
 import { useAuth } from '../App';
+import GlobalOpsLogo from '../brand/GlobalOpsLogo';
 import { signIn } from '../services/authService';
 
 export default function LoginPage() {
@@ -28,6 +29,7 @@ export default function LoginPage() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <form onSubmit={submit} style={{ width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <Link to="/" aria-label="MaosGlobalOps, página inicial" style={{ alignSelf: 'flex-start', marginBottom: 8 }}><GlobalOpsLogo variant="symbol" height={56} /></Link>
         <h1 style={{ fontSize: 26, fontWeight: 800 }}>Entrar</h1>
         {error && <div style={{ background: 'rgba(225,29,72,0.1)', border: '1px solid rgba(225,29,72,0.35)', borderRadius: 'var(--radius)', color: 'var(--danger)', padding: '10px 14px', fontSize: 13 }}>{error}</div>}
         <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, color: 'var(--text-3)' }}>Email
