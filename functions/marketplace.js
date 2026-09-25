@@ -129,6 +129,7 @@ export function createMarketplace(db, clock = Date.now) {
           companyId: uid,
           companyName: p.data().name,
           status: "open",
+          visibility: "public",
           featured: false,
           filled: 0,
           schemaVersion: 2,

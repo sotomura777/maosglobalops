@@ -308,6 +308,85 @@ export function Explore() {
     </>
   );
 }
+// Condições da oferta, iguais na página da app e na página pública partilhável.
+export function JobFacts({ job }) {
+  return (
+    <>
+      <div className="detail-grid">
+        {[
+          ["Pagamento", payLabel(job)],
+          ["Data", dateLabel(job.date)],
+          [
+            "Horário",
+            job.startTime
+              ? `${job.startTime}–${job.endTime}${job.endTime <= job.startTime ? " (+1 dia)" : ""}`
+              : "A combinar",
+          ],
+          ["Local", job.location || job.district],
+          ["Distrito", job.district],
+          [
+            "Vagas disponíveis",
+            job.vacancies
+              ? `${Math.max(0, job.vacancies - (job.filled || 0))} de ${job.vacancies}`
+              : "Não indicado",
+          ],
+        ].map(([l, v]) => (
+          <div key={l}>
+            <small>{l}</small>
+            <strong>{v}</strong>
+          </div>
+        ))}
+      </div>
+      <h3 className="section-title">O trabalho</h3>
+      <p className="subtle" style={{ whiteSpace: "pre-wrap" }}>
+        {job.description || "Sem descrição adicional."}
+      </p>
+      <h3 className="section-title" style={{ marginTop: 24 }}>
+        Condições
+      </h3>
+      <div className="stack subtle">
+        {[
+          ["Prazo de pagamento", job.paymentTerms],
+          ["Transporte", job.transport],
+          ["Refeição", job.meal],
+          ["Roupa e equipamento", job.equipment],
+        ].map(([l, v]) => (
+          <p key={l}>
+            <strong>{l}: </strong>
+            {v || "Não indicado — confirma com a empresa."}
+          </p>
+        ))}
+      </div>
+    </>
+  );
+}
+// Partilhar a ligação pública da oferta: no telemóvel abre a partilha do sistema.
+function ShareButton({ jobId, title }) {
+  const [copied, setCopied] = useState(false);
+  const url = `${window.location.origin}/ofertas/${jobId}`;
+  const share = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title, url });
+        return;
+      } catch (e) {
+        if (e.name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      window.prompt("Copia a ligação:", url);
+    }
+  };
+  return (
+    <button type="button" className="btn secondary" onClick={share}>
+      {copied ? "Ligação copiada" : "Partilhar"}
+    </button>
+  );
+}
 export function JobDetails() {
   const { id } = useParams();
   const { user, profile } = useAuth();
@@ -356,13 +435,23 @@ export function JobDetails() {
       </>
     );
   const owner = job.companyId === user.uid;
-  const expired = job.startAt?.toMillis ? job.startAt.toMillis() <= Date.now() : /^\d{4}-\d{2}-\d{2}$/.test(job.date) && job.date < today();
+  const expired = job.startAt?.toMillis
+    ? job.startAt.toMillis() <= Date.now()
+    : /^\d{4}-\d{2}-\d{2}$/.test(job.date) && job.date < today();
   return (
     <>
       <Link className="quiet" to="/app/trabalhos">
         ← Explorar trabalhos
       </Link>
-      <Heading eyebrow={job.category || "Trabalho"} title={job.title} />
+      <Heading
+        eyebrow={job.category || "Trabalho"}
+        title={job.title}
+        action={
+          job.visibility !== "private" && (
+            <ShareButton jobId={id} title={job.title} />
+          )
+        }
+      />
       <ErrorBox>{error}</ErrorBox>
       <div className="panel">
         <Link
@@ -376,51 +465,7 @@ export function JobDetails() {
             <p className="subtle">Ver perfil da empresa →</p>
           </div>
         </Link>
-        <div className="detail-grid">
-          {[
-            ["Pagamento", payLabel(job)],
-            ["Data", dateLabel(job.date)],
-            [
-              "Horário",
-              job.startTime
-                ? `${job.startTime}–${job.endTime}${job.endTime <= job.startTime ? " (+1 dia)" : ""}`
-                : "A combinar",
-            ],
-            ["Local", job.location || job.district],
-            ["Distrito", job.district],
-            [
-              "Vagas disponíveis",
-              job.vacancies
-                ? `${Math.max(0, job.vacancies - (job.filled || 0))} de ${job.vacancies}`
-                : "Não indicado",
-            ],
-          ].map(([l, v]) => (
-            <div key={l}>
-              <small>{l}</small>
-              <strong>{v}</strong>
-            </div>
-          ))}
-        </div>
-        <h3 className="section-title">O trabalho</h3>
-        <p className="subtle" style={{ whiteSpace: "pre-wrap" }}>
-          {job.description || "Sem descrição adicional."}
-        </p>
-        <h3 className="section-title" style={{ marginTop: 24 }}>
-          Condições
-        </h3>
-        <div className="stack subtle">
-          {[
-            ["Prazo de pagamento", job.paymentTerms],
-            ["Transporte", job.transport],
-            ["Refeição", job.meal],
-            ["Roupa e equipamento", job.equipment],
-          ].map(([l, v]) => (
-            <p key={l}>
-              <strong>{l}: </strong>
-              {v || "Não indicado — confirma com a empresa."}
-            </p>
-          ))}
-        </div>
+        <JobFacts job={job} />
       </div>
       <div className="panel" style={{ marginTop: 16 }}>
         {owner ? (
@@ -538,7 +583,11 @@ export function JobDetails() {
       </div>
       {!owner && (
         <div className="report-slot">
-          <ReportButton targetType="job" targetId={id} label="Denunciar esta oferta" />
+          <ReportButton
+            targetType="job"
+            targetId={id}
+            label="Denunciar esta oferta"
+          />
         </div>
       )}
     </>

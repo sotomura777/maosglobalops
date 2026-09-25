@@ -133,6 +133,33 @@ test("empresa e profissional: publicar, pesquisar, guardar, contratar, conversar
   ).toBeVisible();
   await expect(company).toHaveURL(/app\/trabalhos\//);
   const jobPath = new URL(company.url()).pathname;
+  // The offer can be shared: its public page opens without an account and,
+  // after signing up, brings the person straight back to it.
+  const publicPath = jobPath.replace("/app/trabalhos/", "/ofertas/");
+  const visitorContext = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    locale: "pt-PT",
+    isMobile: true,
+    hasTouch: true,
+  });
+  const visitor = await visitorContext.newPage();
+  visitor.on("pageerror", (e) => errors.push(e.message));
+  await visitor.goto(publicPath);
+  await expect(
+    visitor.getByRole("heading", { name: "Serviço de mesa · Gala em Lisboa" }),
+  ).toBeVisible();
+  await visitor.screenshot({ path: testInfo.outputPath("oferta-publica-mobile.png"), fullPage: true });
+  await visitor.getByRole("link", { name: "Criar perfil e candidatar-me" }).click();
+  await visitor.getByLabel("Nome", { exact: true }).fill("Bruno Visita");
+  await visitor.getByLabel("Email", { exact: true }).fill(`bruno-${suffix}@example.com`);
+  await visitor.getByLabel("Password (mín. 8)").fill(pass);
+  await visitor.getByRole("checkbox").check();
+  await visitor.getByRole("button", { name: "Criar perfil", exact: true }).click();
+  await expect(visitor).toHaveURL(new RegExp(jobPath + "$"));
+  await expect(
+    visitor.getByRole("heading", { name: "Serviço de mesa · Gala em Lisboa" }),
+  ).toBeVisible();
+  await visitorContext.close();
   await company
     .getByRole("link", { name: "Duplicar oferta", exact: true })
     .click();

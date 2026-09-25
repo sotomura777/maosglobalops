@@ -1230,3 +1230,25 @@ a.setup-strip:focus-visible strong {
     flex-wrap: wrap;
   }
 }
+.public-job {
+  min-height: 100vh;
+  background: var(--bg);
+}
+.public-job-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.public-job-main {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+}
+.public-job-title {
+  font-size: clamp(26px, 6vw, 40px);
+  font-weight: 800;
+  letter-spacing: -0.8px;
+  margin: 8px 0 20px;
+}

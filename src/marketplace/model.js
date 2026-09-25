@@ -226,3 +226,8 @@ export function summarizeEarnings(entries, month) {
       .map(([m, v]) => ({ month: m, ...v })),
   };
 }
+// Depois de entrar, só voltamos a páginas da própria app (nunca a outro site).
+export const safeNext = (value) =>
+  typeof value === "string" && /^\/app(\/[A-Za-z0-9_-]+)*\/?$/.test(value)
+    ? value
+    : "/app";

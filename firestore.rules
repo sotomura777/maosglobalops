@@ -119,7 +119,14 @@ service cloud.firestore {
       }
     }
     match /jobs/{jobId} {
-      allow read: if signed();
+      function publicJob() { return resource.data.get('visibility', 'public') == 'public'; }
+      // Uma oferta pública abre por ligação, mesmo sem conta. Listas exigem conta.
+      // Uma oferta privada só é vista pela empresa e por quem foi convidado.
+      allow get: if publicJob() || (signed() && (resource.data.companyId == request.auth.uid ||
+        exists(/databases/$(database)/documents/invitations/$(jobId + '_' + request.auth.uid))));
+      // Nas listas, comparar o campo diretamente: com get(campo, defeito) a regra não filtra.
+      // Por isso todas as ofertas têm 'visibility' (publicação e scripts/migrate-visibility.mjs).
+      allow list: if signed() && (resource.data.visibility == 'public' || resource.data.companyId == request.auth.uid);
       allow create: if false; // Publicação validada pela função contracting.
       // Condições da oferta ficam estáveis depois de publicadas.
       allow update: if signed() && resource.data.companyId == request.auth.uid && resource.data.status == 'open' &&

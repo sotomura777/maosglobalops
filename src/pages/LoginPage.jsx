@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { safeNext } from '../marketplace/model';
 import { useAuth } from '../App';
 import { signIn } from '../services/authService';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  useEffect(() => { if (user) navigate('/app', { replace: true }); }, [user, navigate]);
+  const next = safeNext(useSearchParams()[0].get('next'));
+  useEffect(() => { if (user) navigate(next, { replace: true }); }, [user, navigate, next]);
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);

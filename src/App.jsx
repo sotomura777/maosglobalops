@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, lazy } from "react";
+import { useState, useEffect, createContext, useContext, lazy, Suspense } from "react";
 import {
   createBrowserRouter,
   createRoutesFromElements,
@@ -37,6 +37,7 @@ const EditProfile = page(() => import("./marketplace/Profiles"), "EditProfile");
 const Approvals = page(() => import("./marketplace/Profiles"), "Approvals");
 const StaffHandover = page(() => import("./marketplace/Profiles"), "StaffHandover");
 const AdminPage = page(() => import("./marketplace/Admin"), "AdminPage");
+const PublicJobPage = page(() => import("./pages/PublicJobPage"));
 import "./marketplace/market.css";
 const AuthCtx = createContext({ user: null, profile: null, loading: true });
 export const useAuth = () => useContext(AuthCtx);
@@ -138,6 +139,14 @@ const router = createBrowserRouter(
       <Route path="/recuperar-password" element={<AccountPage recovery />} />
       <Route path="/privacidade" element={<LegalPage kind="privacy" />} />
       <Route path="/termos" element={<LegalPage kind="terms" />} />
+      <Route
+        path="/ofertas/:id"
+        element={
+          <Suspense fallback={null}>
+            <PublicJobPage />
+          </Suspense>
+        }
+      />
       <Route path="/entrar" element={<LoginPage />} />
       <Route path="/registar" element={<RegisterPage />} />
       <Route path="/registar-empresa" element={<RegisterCompanyPage />} />

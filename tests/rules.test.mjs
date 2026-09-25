@@ -418,6 +418,31 @@ test("the owner switches email notices on or off, and nobody else can", async ()
   await assertFails(updateDoc(doc(company, "profiles", "worker"), { emailNotifications: true }));
   await assertSucceeds(updateDoc(doc(worker, "profiles", "worker"), { emailNotifications: true }));
 });
+test("public offers open without login; private ones only for the company and invitees", async () => {
+  const anon = env.unauthenticatedContext().firestore();
+  await seed("jobs", "pub", { ...job, visibility: "public" });
+  // Offers published before 'visibility' existed still open by link.
+  await seed("jobs", "legacy", job);
+  await seed("jobs", "priv", { ...job, visibility: "private" });
+  await seed("invitations", "priv_worker", { jobId: "priv", workerId: "worker", companyId: "company" });
+  // Shareable link: a single public offer can be read by anyone.
+  await assertSucceeds(getDoc(doc(anon, "jobs", "pub")));
+  await assertSucceeds(getDoc(doc(anon, "jobs", "legacy")));
+  // But nobody can list offers without an account.
+  await assertFails(getDocs(collection(anon, "jobs")));
+  await assertFails(getDoc(doc(anon, "jobs", "priv")));
+  await assertFails(getDoc(doc(stranger, "jobs", "priv")));
+  await assertSucceeds(getDoc(doc(worker, "jobs", "priv")));
+  await assertSucceeds(getDoc(doc(company, "jobs", "priv")));
+  // Signed-in lists must ask only for public offers (or the company's own).
+  await assertSucceeds(
+    getDocs(query(collection(stranger, "jobs"), where("visibility", "==", "public"))),
+  );
+  await assertFails(getDocs(query(collection(stranger, "jobs"), where("status", "==", "open"))));
+  await assertSucceeds(
+    getDocs(query(collection(company, "jobs"), where("companyId", "==", "company"))),
+  );
+});
 test("handover requests are visible only to the company and the person", async () => {
   await seed("handovers", "company_worker", {
     companyId: "company",
@@ -568,6 +593,30 @@ test("closing the offer prevents new applications without deleting the history",
   );
 });
 
+test("visibility migration is dry-run by default, idempotent and only adds the field", async () => {
+  const { spawnSync } = await import("node:child_process");
+  await seed("jobs", "old-offer", { ...job, status: "closed" });
+  const run = (execute) => {
+    const result = spawnSync(
+      process.execPath,
+      ["scripts/migrate-visibility.mjs", "--project", "demo-globalops", ...(execute ? ["--execute"] : [])],
+      { encoding: "utf8", env: { ...process.env, FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080" } },
+    );
+    assert.equal(result.status, 0, result.stderr);
+    return JSON.parse(result.stdout);
+  };
+  const before = run(false);
+  assert.ok(before.missingVisibility >= 1);
+  assert.equal(before.updated, 0);
+  assert.equal(run(true).updated, before.missingVisibility);
+  assert.equal(run(true).missingVisibility, 0);
+  let migrated;
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    migrated = (await getDoc(doc(ctx.firestore(), "jobs", "old-offer"))).data();
+  });
+  assert.equal(migrated.visibility, "public");
+  assert.equal(migrated.status, "closed");
+});
 test("legacy migration is dry-run by default and preserves existing engagement states", async () => {
   const { spawnSync } = await import("node:child_process");
   await env.withSecurityRulesDisabled(async (ctx) => {

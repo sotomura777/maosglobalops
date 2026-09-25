@@ -10,6 +10,7 @@ import {
   platformEarnings,
   personalEarnings,
   summarizeEarnings,
+  safeNext,
 } from "../src/marketplace/model.js";
 test("worker and company must each confirm the agreed stages", () => {
   assert.deepEqual(
@@ -157,4 +158,10 @@ test("the summary splits this month, totals, the hourly average and recent month
     ["2026-08", 100],
   ]);
   assert.deepEqual(summarizeEarnings([], "2026-09").average, 0);
+});
+
+test("after login, only return to a page inside the app", () => {
+  assert.equal(safeNext("/app/trabalhos/abc123"), "/app/trabalhos/abc123");
+  for (const bad of [null, "", "https://evil.example", "//evil.example", "/app/../x", "/entrar", "/app\\evil", "javascript:alert(1)"])
+    assert.equal(safeNext(bad), "/app", String(bad));
 });

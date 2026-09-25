@@ -34,6 +34,8 @@ Manual para pôr a fase 2 em produção e mantê-la a funcionar. Tudo o que est�
 
 ```sh
 firebase deploy --only functions --project maosglobalops
+node scripts/migrate-visibility.mjs --project maosglobalops            # ensaio
+node scripts/migrate-visibility.mjs --project maosglobalops --execute  # ANTES das regras: sem o campo, as ofertas saem do Explorar
 firebase deploy --only firestore:rules,firestore:indexes --project maosglobalops
 node scripts/migrate-contracting.mjs --project maosglobalops            # ensaio: rever contagens
 node scripts/migrate-contracting.mjs --project maosglobalops --execute

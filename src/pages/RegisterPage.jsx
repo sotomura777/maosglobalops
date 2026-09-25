@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { safeNext } from '../marketplace/model';
 import { useAuth } from '../App';
 import { signUpWorker } from '../services/authService';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
   const { user, profile, loading } = useAuth();
-  useEffect(() => { if (user && profile && !loading) navigate('/app', { replace: true }); }, [user, profile, loading, navigate]);
+  const next = safeNext(useSearchParams()[0].get('next'));
+  useEffect(() => { if (user && profile && !loading) navigate(next, { replace: true }); }, [user, profile, loading, navigate, next]);
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState('');

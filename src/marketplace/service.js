@@ -39,6 +39,7 @@ export const watchJobs = (cb, err) =>
   onSnapshot(
     query(
       collection(db, "jobs"),
+      where("visibility", "==", "public"),
       where("status", "==", "open"),
       orderBy("createdAt", "desc"),
       limit(100),
