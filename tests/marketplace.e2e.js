@@ -457,17 +457,23 @@ test("empresa e profissional: publicar, pesquisar, guardar, contratar, conversar
     fullPage: true,
   });
   await worker.goto("/app/ganhos");
+  // The completed job counts on its own, from the agreed terms. The emulator time
+  // adjustment above made the shift last 1 h, so 1 h × 14 €.
+  const fromApp = worker.locator(".earnings-entry").filter({ hasText: "GlobalOps" });
+  await expect(fromApp).toContainText("Serviço de mesa · Gala em Lisboa");
+  await expect(fromApp).toContainText("14,00");
+  await expect(worker.getByText("A tua média: 14,00 €/h")).toBeVisible();
   await expect(worker.getByLabel("Horas", { exact: true })).toHaveCount(0);
   await worker.getByRole("button", { name: "Registar trabalho" }).click();
   await worker.getByLabel("Horas", { exact: true }).fill("5");
   await worker.getByLabel("Valor por hora (€)").fill("14");
   await worker.getByLabel("Empresa (opcional)").fill("Aurora Eventos");
   await worker.getByRole("button", { name: "Guardar registo" }).click();
-  await expect(worker.locator(".earnings-entry")).toContainText(
-    "Aurora Eventos",
-  );
+  const personal = worker.locator(".earnings-entry").filter({ hasNotText: "GlobalOps" });
+  await expect(personal).toContainText("Aurora Eventos");
   await worker.reload();
-  await expect(worker.locator(".earnings-entry")).toContainText("70,00");
+  await expect(personal).toContainText("70,00");
+  await expect(worker.locator(".earnings-summary")).toContainText("84,00");
   for (const path of [
     "/app",
     "/app/trabalhos",

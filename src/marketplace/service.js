@@ -268,3 +268,5 @@ export const createReport = (uid, { targetType, targetId, engagementId, reason, 
 export const exportMyData = () => contract({ operation: "exportData" }, accountRights);
 export const deleteMyAccount = (reason) =>
   contract({ operation: "deleteAccount", reason }, accountRights);
+export const getMarketStats = async () =>
+  (await getDoc(doc(db, "marketStats", "current"))).data() || null;

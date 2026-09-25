@@ -89,6 +89,8 @@ service cloud.firestore {
     match /handovers/{id} {
       allow read: if signed() && (resource.data.companyId == request.auth.uid || resource.data.workerId == request.auth.uid);
     }
+    // Médias de €/h do mercado (calculadas no servidor a partir das ofertas).
+    match /marketStats/{id} { allow read: if signed(); }
     // Validação das empresas pela administração. Só o servidor escreve.
     match /companyStatus/{uid} { allow read: if signed(); }
     // Histórico de trabalhos verificados. Escrito só pelo servidor ao concluir ou ao aprovar.

@@ -171,3 +171,58 @@ export const jobForm = (job) =>
   Object.fromEntries(
     Object.entries(emptyJob()).map(([k, v]) => [k, job?.[k] ?? v]),
   );
+
+// Ganhos dos trabalhos concluídos na GlobalOps, a partir das condições aceites na confirmação.
+export function platformEarnings(applications) {
+  return applications
+    .filter(
+      (a) =>
+        a.status === "completed" &&
+        a.agreedTerms?.endMs > a.agreedTerms?.startMs,
+    )
+    .map((a) => {
+      const t = a.agreedTerms;
+      const hours = Math.round((t.endMs - t.startMs) / 36000) / 100;
+      return {
+        id: a.id,
+        source: "app",
+        date: t.date,
+        hours,
+        amount: t.payType === "service" ? Number(t.rate) : Number(t.rate) * hours,
+        title: a.title,
+        company: a.companyName,
+        jobId: a.jobId,
+        district: t.district,
+      };
+    });
+}
+export const personalEarnings = (worklog) =>
+  worklog.map((e) => ({
+    id: e.id,
+    source: "personal",
+    date: e.date,
+    hours: e.hours,
+    amount: e.hours * e.rate,
+    company: e.company,
+  }));
+export function summarizeEarnings(entries, month) {
+  const add = (acc, e) => ({ hours: acc.hours + e.hours, amount: acc.amount + e.amount });
+  const zero = { hours: 0, amount: 0 };
+  const total = entries.reduce(add, zero);
+  const app = entries.filter((e) => e.source === "app").reduce(add, zero);
+  const months = new Map();
+  for (const e of entries) {
+    const m = (e.date || "").slice(0, 7);
+    if (m) months.set(m, add(months.get(m) || zero, e));
+  }
+  return {
+    month: months.get(month) || zero,
+    total,
+    average: total.hours ? total.amount / total.hours : 0,
+    averageApp: app.hours ? app.amount / app.hours : 0,
+    byMonth: [...months]
+      .sort(([a], [b]) => b.localeCompare(a))
+      .slice(0, 6)
+      .map(([m, v]) => ({ month: m, ...v })),
+  };
+}

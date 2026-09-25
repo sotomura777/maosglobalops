@@ -8,6 +8,7 @@ import { defineSecret } from "firebase-functions/params";
 import { createMarketplace } from "./marketplace.js";
 import { createAdmin } from "./admin.js";
 import { createAccount } from "./account.js";
+import { refreshMarketStats } from "./stats.js";
 import { deliver, engagementNotice, resendSender, sendReminders } from "./mail.js";
 initializeApp();
 const options = {
@@ -73,6 +74,13 @@ export const engagementMail = onDocumentWritten(
     );
     // O id do evento é estável entre repetições, por isso o mesmo aviso não sai duas vezes.
     if (notice) await deliver(getFirestore(), `evt-${event.id}`, notice, sender());
+  },
+);
+// Médias de mercado para "Horas e ganhos", recalculadas de madrugada.
+export const marketStats = onSchedule(
+  { schedule: "0 4 * * *", timeZone: "Europe/Lisbon", region: "europe-west1" },
+  async () => {
+    await refreshMarketStats(getFirestore(), Date.now());
   },
 );
 export const shiftReminders = onSchedule(

@@ -7,6 +7,9 @@ import {
   matchesJob,
   isLateCancel,
   attendanceRate,
+  platformEarnings,
+  personalEarnings,
+  summarizeEarnings,
 } from "../src/marketplace/model.js";
 test("worker and company must each confirm the agreed stages", () => {
   assert.deepEqual(
@@ -111,4 +114,47 @@ test("payment type filters independently of minimum rate", () => {
   assert.equal(matchesJob(job, { payType: "service" }), false);
   assert.equal(matchesJob(job, { payType: "hour" }), true);
   assert.equal(matchesJob(job, { payType: "hour", rate: 15 }), false);
+});
+
+test("completed jobs become earnings from the agreed terms, per hour or per service", () => {
+  const h = 3600000;
+  const done = (id, terms, status = "completed") => ({
+    id,
+    status,
+    title: "Mesa",
+    companyName: "Aurora",
+    jobId: "j-" + id,
+    agreedTerms: { date: "2026-09-10", ...terms },
+  });
+  const entries = platformEarnings([
+    done("hourly", { startMs: 0, endMs: 5 * h, rate: 12, payType: "hour" }),
+    done("service", { startMs: 0, endMs: 4 * h, rate: 100, payType: "service" }),
+    done("pending", { startMs: 0, endMs: 5 * h, rate: 12, payType: "hour" }, "confirmed"),
+    { id: "legacy", status: "completed" },
+  ]);
+  assert.deepEqual(
+    entries.map((e) => [e.id, e.hours, e.amount, e.source]),
+    [
+      ["hourly", 5, 60, "app"],
+      ["service", 4, 100, "app"],
+    ],
+  );
+});
+
+test("the summary splits this month, totals, the hourly average and recent months", () => {
+  const entries = [
+    ...personalEarnings([{ id: "w1", date: "2026-09-02", hours: 4, rate: 10, company: "Café" }]),
+    { id: "a", source: "app", date: "2026-09-10", hours: 5, amount: 60 },
+    { id: "b", source: "app", date: "2026-08-20", hours: 4, amount: 100 },
+  ];
+  const s = summarizeEarnings(entries, "2026-09");
+  assert.deepEqual(s.month, { hours: 9, amount: 100 });
+  assert.deepEqual(s.total, { hours: 13, amount: 200 });
+  assert.equal(Math.round(s.average * 100) / 100, 15.38);
+  assert.equal(Math.round(s.averageApp * 100) / 100, 17.78);
+  assert.deepEqual(s.byMonth.map((m) => [m.month, m.amount]), [
+    ["2026-09", 100],
+    ["2026-08", 100],
+  ]);
+  assert.deepEqual(summarizeEarnings([], "2026-09").average, 0);
 });
