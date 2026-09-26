@@ -1,4 +1,4 @@
-import GlobalOpsLogo from "./GlobalOpsLogo";
+import GlobalOpsLogo, { GOP_THEMES } from "./GlobalOpsLogo";
 import { useTheme } from "../theme";
 
 // O logo no modo atual. bg é a cor real do fundo (usada na folga onde a órbita passa à frente do O).
@@ -11,5 +11,23 @@ export default function Logo({ colors, surface, ...props }) {
       {...props}
       colors={{ bg: surface?.[theme] || SURFACE[theme], ...colors }}
     />
+  );
+}
+
+// Logo da GlobalOps para barras de topo: o MAOS-globo e "GLOBAL / OPS" em letra legível.
+// (A variante horizontal do kit escala o texto com a altura e fica ilegível a esta dimensão.)
+export function Wordmark({ height = 28, textSize = 12, className, surface }) {
+  const { theme } = useTheme();
+  const c = GOP_THEMES[theme];
+  const word = { font: `700 ${textSize}px/1 'Public Sans', sans-serif`, letterSpacing: ".22em" };
+  return (
+    <span className={className} role="img" aria-label="MaosGlobalOps" style={{ display: "inline-flex", alignItems: "center", gap: Math.round(textSize * 0.9) }}>
+      <GlobalOpsLogo variant="globe" height={height} title="" aria-hidden="true" theme={theme} colors={{ bg: surface?.[theme] || SURFACE[theme] }} />
+      <span aria-hidden="true" style={{ width: 1, height: Math.round(height * 0.7), background: c.divider }} />
+      <span aria-hidden="true" style={{ display: "flex", flexDirection: "column", gap: Math.round(textSize * 0.35) }}>
+        <span style={{ ...word, color: c.text }}>GLOBAL</span>
+        <span style={{ ...word, color: c.ops }}>OPS</span>
+      </span>
+    </span>
   );
 }

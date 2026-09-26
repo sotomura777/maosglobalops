@@ -631,7 +631,8 @@ test("administração: estatísticas, validação de empresas e suspensão de co
   );
   expect(claim.ok()).toBe(true);
   // A new session carries the new claim.
-  await page.getByRole("button", { name: "Sair" }).click();
+  await page.getByRole("button", { name: "A minha conta" }).click();
+  await page.getByRole("menuitem", { name: "Sair" }).click();
   await expect(page).not.toHaveURL(/\/app/);
   await page.goto("/entrar");
   await page.getByLabel("Email").fill(email);

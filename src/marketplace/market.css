@@ -1319,7 +1319,7 @@ a.setup-strip:focus-visible strong {
     display: none !important;
   }
   .logo-compact {
-    display: block !important;
+    display: inline-flex !important;
   }
 }
 /* Modo claro: o cartão de destaque do início troca o gradiente escuro por um claro. */
@@ -1328,4 +1328,45 @@ a.setup-strip:focus-visible strong {
 }
 :root[data-theme="light"] .hero-market:before {
   background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--gold) 45%, transparent), transparent);
+}
+.account-menu {
+  position: relative;
+}
+.account-menu > .avatar {
+  border: 1px solid var(--border-mid);
+  cursor: pointer;
+}
+.account-menu-list {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 80;
+  min-width: 210px;
+  display: grid;
+  padding: 6px;
+  background: var(--card-2);
+  border: 1px solid var(--border-mid);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+}
+.account-menu-list a,
+.account-menu-list button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+  text-decoration: none;
+}
+.account-menu-list a:hover,
+.account-menu-list button:hover,
+.account-menu-list a:focus-visible,
+.account-menu-list button:focus-visible {
+  background: var(--inset);
 }

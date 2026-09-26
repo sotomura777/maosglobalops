@@ -4,7 +4,7 @@ import { useAuth } from "../App";
 import { getJob } from "../marketplace/service";
 import { JobFacts } from "../marketplace/Jobs";
 import { CompanyMark } from "../ui";
-import GlobalOpsLogo from "../brand/Logo";
+import { Wordmark } from "../brand/Logo";
 
 // Página partilhável de uma oferta: abre sem conta, para quem recebe a ligação.
 export default function PublicJobPage() {
@@ -22,7 +22,7 @@ export default function PublicJobPage() {
     <div className="public-job">
       <header className="public-job-header">
         <Link className="wordmark" to="/" aria-label="MaosGlobalOps, página inicial">
-          <GlobalOpsLogo variant="small" height={18} />
+          <Wordmark height={26} textSize={11} />
         </Link>
         {!user && (
           <Link className="quiet" to={`/entrar?next=${next}`}>

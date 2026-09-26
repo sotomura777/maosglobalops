@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { S, MONO, LightThread, CompanyMark, GOLD_GRAD } from '../ui';
-import GlobalOpsLogo from '../brand/Logo';
+import GlobalOpsLogo, { Wordmark } from '../brand/Logo';
 import { GlobeGrid } from '../brand/GlobalOpsLogo';
 import { useTheme } from '../theme';
 import { ThemeToggle } from '../marketplace/Layout';
@@ -26,7 +26,7 @@ export default function LandingPage() {
         {/* Numa linha só há espaço no ecrã largo; no telemóvel fica a versão compacta. */}
         <Link to="/" aria-label="MaosGlobalOps" style={{ display: 'flex' }}>
           <GlobalOpsLogo className="logo-wide" variant="oneline" height={16} />
-          <GlobalOpsLogo className="logo-compact" variant="small" height={18} />
+          <Wordmark className="logo-compact" height={22} textSize={10} />
         </Link>
         <nav style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <ThemeToggle />

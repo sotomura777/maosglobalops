@@ -1,11 +1,11 @@
-import { cloneElement, Suspense, useId } from "react";
+import { cloneElement, Suspense, useEffect, useId, useRef, useState } from "react";
 import { NavLink, Outlet, Link } from "react-router-dom";
 import { useAuth } from "../App";
 import { signOut } from "../services/authService";
 import { useMarket } from "./context";
 import { initials } from "../ui";
 import { useIsAdmin } from "./useIsAdmin";
-import GlobalOpsLogo from "../brand/Logo";
+import { Wordmark } from "../brand/Logo";
 import { useTheme, setPreference } from "../theme";
 export function Icon({ name, ...props }) {
   const paths = {
@@ -56,6 +56,58 @@ export function ThemeToggle({ className = "icon-button" }) {
     </button>
   );
 }
+// Menu da conta no avatar: poupa espaço na barra (sobretudo no telemóvel).
+function AccountMenu({ name, admin }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const menuId = useId();
+  useEffect(() => {
+    if (!open) return;
+    const close = (e) => {
+      if (e.type === "keydown" ? e.key === "Escape" : !ref.current?.contains(e.target))
+        setOpen(false);
+    };
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      document.removeEventListener("keydown", close);
+    };
+  }, [open]);
+  return (
+    <div className="account-menu" ref={ref}>
+      <button
+        type="button"
+        className="avatar"
+        aria-label="A minha conta"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={menuId}
+        onClick={() => setOpen(!open)}
+      >
+        {initials(name)}
+      </button>
+      {open && (
+        <div className="account-menu-list" id={menuId} role="menu" onClick={() => setOpen(false)}>
+          <Link role="menuitem" to="/app/perfil">O meu perfil</Link>
+          <Link role="menuitem" to="/app/conta">Segurança da conta</Link>
+          {admin && (
+            <Link role="menuitem" to="/app/admin">
+              <Icon name="shield" width="16" height="16" /> Administração
+            </Link>
+          )}
+          <button
+            role="menuitem"
+            type="button"
+            onClick={() => signOut().catch(() => alert("Não foi possível sair."))}
+          >
+            Sair
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 export default function Layout() {
   const { profile, user } = useAuth();
   const {
@@ -87,16 +139,12 @@ export default function Layout() {
     <div className="market-shell">
       <header className="market-header">
         <Link className="wordmark" to="/app" aria-label="MaosGlobalOps, início">
-          <GlobalOpsLogo variant="small" height={18} title="MaosGlobalOps" />
-          <small>mercado de trabalho</small>
+          {/* O MAOS sozinho é a MaosOps; aqui é sempre o logo da GlobalOps. */}
+          <Wordmark className="logo-wide" height={28} textSize={12} />
+          <Wordmark className="logo-compact" height={22} textSize={10} />
         </Link>
         <div className="header-actions">
           <ThemeToggle />
-          {admin && (
-            <Link className="icon-button" to="/app/admin" aria-label="Administração">
-              <Icon name="shield" />
-            </Link>
-          )}
           <Link
             className="icon-button"
             to="/app/notificacoes"
@@ -107,17 +155,7 @@ export default function Layout() {
               <span className="notification-dot">{unread.length}</span>
             )}
           </Link>
-          <Link className="avatar" to="/app/perfil" aria-label="O meu perfil">
-            {initials(profile.name)}
-          </Link>
-          <button
-            className="quiet"
-            onClick={() =>
-              signOut().catch(() => alert("Não foi possível sair."))
-            }
-          >
-            Sair
-          </button>
+          <AccountMenu name={profile.name} admin={admin} />
         </div>
       </header>
       <div className="market-frame">
