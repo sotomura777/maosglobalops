@@ -7,7 +7,7 @@ const requireFunctions = createRequire(
   new URL("../functions/package.json", import.meta.url),
 );
 const { initializeApp, deleteApp } = requireFunctions("firebase-admin/app");
-const { getFirestore } = requireFunctions("firebase-admin/firestore");
+const { getFirestore, Timestamp } = requireFunctions("firebase-admin/firestore");
 const { getAuth } = requireFunctions("firebase-admin/auth");
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080";
 process.env.FIREBASE_AUTH_EMULATOR_HOST = "127.0.0.1:9099";
@@ -185,4 +185,30 @@ test("only validated companies get an own-app link, always over https", async ()
   await asAdmin({ operation: "setCompanyApp", uid: "acme", name: "" });
   acme = (await asAdmin({ operation: "listCompanies" })).find((c) => c.uid === "acme");
   assert.equal(acme.app, null);
+});
+
+test("the funnel shows where people drop off in the chosen period", async () => {
+  const at = Timestamp.fromMillis(Date.parse("2026-09-10T10:00:00Z"));
+  const old = Timestamp.fromMillis(Date.parse("2026-01-01T10:00:00Z"));
+  await db.doc("profiles/newbie").set({ kind: "worker", name: "N", createdAt: "2026-09-10T09:00:00.000Z" });
+  const e = (id, workerId, status, previousStatus, createdAt = at) =>
+    db.doc(`engagements/${id}`).set({ workerId, companyId: "acme", jobId: "fj", status, previousStatus, createdAt });
+  await e("f1", "ana", "pending", "");
+  await e("f2", "ana", "cancelled", "confirmed");
+  await e("f3", "newbie", "completed", "completion_requested");
+  await e("f4", "ana", "rejected", "pending");
+  await e("f-old", "ana", "completed", "completion_requested", old);
+  await db.doc("jobs/fj").set({ companyId: "acme", title: "F", status: "open", createdAt: "2026-09-10T09:00:00.000Z" });
+  await rejected(admin({ auth: { uid: "ana", token: {} }, data: { operation: "funnel" } }), /administração/);
+  const f = await asAdmin({ operation: "funnel", days: 30 });
+  assert.equal(f.days, 30);
+  // Accounts created in the period (boss, acme and ana on 24 Sep, newbie on 10 Sep).
+  assert.deepEqual(f.workers, { signedUp: 3, applied: 2 });
+  assert.deepEqual(f.companies, { signedUp: 1, published: 1 });
+  // Applications in the period and how far each one got (the January one is out).
+  assert.deepEqual(f.applications, { sent: 4, accepted: 2, confirmed: 2, completed: 1 });
+  // The last 7 days only see the accounts from 24 Sep, none of which applied then.
+  const week = await asAdmin({ operation: "funnel", days: 7 });
+  assert.deepEqual(week.workers, { signedUp: 2, applied: 0 });
+  assert.equal(week.applications.sent, 0);
 });

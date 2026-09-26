@@ -88,6 +88,7 @@ function Stats() {
         <Tile label="Ofertas abertas" value={data.jobs.open} hint={`${data.jobs.closed} ${data.jobs.closed === 1 ? "encerrada" : "encerradas"}`} />
         <Tile label="Denúncias abertas" value={data.reportsOpen} />
       </div>
+      <Funnel />
       <div className="panel">
         <h3 className="section-title">Contratações por estado</h3>
         <div className="detail-grid">
@@ -610,6 +611,70 @@ function ReportCard({ r, onDone, busyList }) {
         </>
       ) : (
         <p className="subtle">Decisão: {r.resolution}</p>
+      )}
+    </div>
+  );
+}
+
+// Percurso: onde as pessoas desistem. Cada barra é relativa ao primeiro passo do grupo;
+// a percentagem escrita compara com o passo anterior.
+function Funnel() {
+  const [days, setDays] = useState(30);
+  const [{ data, error }] = useAdminQuery("funnel", { days });
+  const groups = data && [
+    ["Profissionais", [["Registaram-se", data.workers.signedUp], ["Candidataram-se", data.workers.applied]]],
+    ["Empresas", [["Registaram-se", data.companies.signedUp], ["Publicaram uma oferta", data.companies.published]]],
+    [
+      "Candidaturas",
+      [
+        ["Enviadas", data.applications.sent],
+        ["Aceites pela empresa", data.applications.accepted],
+        ["Confirmadas pelo profissional", data.applications.confirmed],
+        ["Concluídas", data.applications.completed],
+      ],
+    ],
+  ];
+  return (
+    <div className="panel">
+      <div className="row between wrap">
+        <h3 className="section-title">Percurso</h3>
+        <div className="tabs" style={{ marginBottom: 0 }}>
+          {[7, 30, 90].map((d) => (
+            <button key={d} className={days === d ? "active" : ""} aria-pressed={days === d} onClick={() => setDays(d)}>
+              {d} dias
+            </button>
+          ))}
+        </div>
+      </div>
+      <ErrorBox>{error}</ErrorBox>
+      {!data ? (
+        !error && <p className="subtle">A calcular…</p>
+      ) : (
+        groups.map(([title, steps]) => (
+          <div className="funnel-group" key={title}>
+            <p className="funnel-title">{title}</p>
+            <ol className="funnel">
+              {steps.map(([label, n], i) => {
+                const base = steps[0][1];
+                const prev = i ? steps[i - 1][1] : null;
+                const share = prev ? Math.round((n / prev) * 100) : null;
+                const text = `${label}: ${n}${share !== null ? ` (${share}% do passo anterior)` : ""}`;
+                return (
+                  <li key={label} title={text}>
+                    <span className="funnel-label">{label}</span>
+                    <span className="funnel-track">
+                      <span className="funnel-bar" style={{ width: `${base ? Math.max((n / base) * 100, n ? 2 : 0) : 0}%` }} />
+                    </span>
+                    <span className="funnel-value">
+                      <strong>{n}</strong>
+                      {share !== null && <small>{share}%</small>}
+                    </span>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        ))
       )}
     </div>
   );

@@ -109,7 +109,7 @@ export default function LandingPage() {
       </section>
 
       <footer style={{ marginTop: 'auto', padding: '32px 24px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-        <GlobalOpsLogo variant="horizontal" height={28} colors={{ letters: 'var(--text-3)', text: 'var(--text-3)', o: 'var(--text-4)', accent: 'var(--text-4)', ops: 'var(--text-4)' }} />
+        <Wordmark muted height={24} textSize={10} />
         <span style={{ fontSize: 12, color: 'var(--text-5)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
           <Link to="/privacidade" style={{ color: 'var(--text-4)' }}>Privacidade</Link>
           <Link to="/termos" style={{ color: 'var(--text-4)' }}>Termos</Link>

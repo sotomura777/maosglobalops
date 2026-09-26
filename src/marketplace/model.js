@@ -233,3 +233,32 @@ export const safeNext = (value) =>
   typeof value === "string" && /^\/app(\/[A-Za-z0-9_-]+)*\/?$/.test(value)
     ? value
     : "/app";
+
+// Calendário de disponibilidade: por defeito a pessoa está livre; marca os dias em que não pode.
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
+const iso = (y, m, d) =>
+  `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+export function calendarMonths(todayStr, count = 2) {
+  const [y0, m0] = todayStr.split("-").map(Number);
+  return Array.from({ length: count }, (_, i) => {
+    const y = y0 + Math.floor((m0 - 1 + i) / 12),
+      m = ((m0 - 1 + i) % 12) + 1;
+    const days = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    const lead = (new Date(Date.UTC(y, m - 1, 1)).getUTCDay() + 6) % 7; // segunda = 0
+    const cells = [
+      ...Array(lead).fill(null),
+      ...Array.from({ length: days }, (_, d) => iso(y, m, d + 1)),
+    ];
+    while (cells.length % 7) cells.push(null);
+    const weeks = [];
+    for (let w = 0; w < cells.length; w += 7) weeks.push(cells.slice(w, w + 7));
+    return { key: iso(y, m, 1).slice(0, 7), weeks };
+  });
+}
+export const upcomingDates = (dates, todayStr, max = 120) =>
+  [...new Set((dates || []).filter((d) => DAY.test(d) && d >= todayStr))]
+    .sort()
+    .slice(0, max);
+export const isFreeOn = (p, date) =>
+  p.availability !== "indisponivel" &&
+  !(date && (p.unavailable || []).includes(date));

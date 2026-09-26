@@ -1,4 +1,4 @@
-import { AggregateField, FieldValue } from "firebase-admin/firestore";
+import { AggregateField, FieldValue, Timestamp } from "firebase-admin/firestore";
 import { fail, text, id } from "./marketplace.js";
 const STATUSES = [
   "pending",
@@ -62,6 +62,42 @@ export function createAdmin(db, auth, clock = Date.now) {
         engagements: Object.fromEntries(STATUSES.map((s, i) => [s, byStatus[i]])),
         reliability: rep.data(),
         reportsOpen,
+      };
+    }
+    // Percurso num período: quem se regista, se candidata, é aceite, confirma e conclui.
+    if (operation === "funnel") {
+      const days = [7, 30, 90].includes(Number(data.days)) ? Number(data.days) : 30;
+      const sinceMs = clock() - days * 86400000;
+      const sinceIso = new Date(sinceMs).toISOString();
+      const [profiles, jobs, apps] = await Promise.all([
+        db.collection("profiles").where("createdAt", ">=", sinceIso).select("kind").get(),
+        db.collection("jobs").where("createdAt", ">=", sinceIso).select("companyId").get(),
+        db
+          .collection("engagements")
+          .where("createdAt", ">=", Timestamp.fromMillis(sinceMs))
+          .select("status", "previousStatus", "workerId")
+          .get(),
+      ]);
+      const newWorkers = new Set(profiles.docs.filter((d) => d.data().kind === "worker").map((d) => d.id));
+      const newCompanies = new Set(profiles.docs.filter((d) => d.data().kind === "company").map((d) => d.id));
+      const appliers = new Set(apps.docs.map((d) => d.data().workerId));
+      const publishers = new Set(jobs.docs.map((d) => d.data().companyId));
+      // Até onde chegou cada candidatura (um cancelamento conta a etapa em que estava).
+      const reached = (e, stages) =>
+        stages.includes(e.status) || (e.status === "cancelled" && stages.includes(e.previousStatus));
+      const rows = apps.docs.map((d) => d.data());
+      const count = (stages) => rows.filter((e) => reached(e, stages)).length;
+      const done = ["confirmed", "completion_requested", "completed", "no_show"];
+      return {
+        days,
+        workers: { signedUp: newWorkers.size, applied: [...newWorkers].filter((u) => appliers.has(u)).length },
+        companies: { signedUp: newCompanies.size, published: [...newCompanies].filter((u) => publishers.has(u)).length },
+        applications: {
+          sent: rows.length,
+          accepted: count(["accepted", ...done]),
+          confirmed: count(done),
+          completed: count(["completed"]),
+        },
       };
     }
     if (operation === "listCompanies") {

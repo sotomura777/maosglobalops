@@ -488,6 +488,32 @@ test("handover requests are visible only to the company and the person", async (
     setDoc(doc(worker, "handovers", "company_worker2"), { companyId: "company", workerId: "worker" }),
   );
 });
+test("unavailable days are kept on the profile and its public projection, within limits", async () => {
+  const days = ["2099-10-01", "2099-10-02"];
+  let current;
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    current = (await getDoc(doc(ctx.firestore(), "profiles", "worker"))).data();
+  });
+  const batch = writeBatch(worker);
+  batch.update(doc(worker, "profiles", "worker"), { unavailable: days });
+  // The public projection must match the private profile's visibility.
+  batch.set(doc(worker, "publicProfiles", "worker"), {
+    kind: "worker",
+    name: current.name,
+    public: current.public === true,
+    unavailable: days,
+  });
+  await assertSucceeds(batch.commit());
+  const tooMany = Array.from({ length: 121 }, (_, i) => `2099-01-${String((i % 28) + 1).padStart(2, "0")}`);
+  await assertFails(updateDoc(doc(worker, "profiles", "worker"), { unavailable: tooMany }));
+  await assertFails(updateDoc(doc(worker, "profiles", "worker"), { unavailable: "2099-10-01" }));
+});
+test("the owner keeps a light/dark preference on the account, with fixed values", async () => {
+  await assertSucceeds(updateDoc(doc(worker, "profiles", "worker"), { theme: "light" }));
+  await assertSucceeds(updateDoc(doc(worker, "profiles", "worker"), { theme: "auto" }));
+  await assertFails(updateDoc(doc(worker, "profiles", "worker"), { theme: "neon" }));
+  await assertFails(updateDoc(doc(company, "profiles", "worker"), { theme: "dark" }));
+});
 test("company validation and suspension are set only by the administration", async () => {
   await assertFails(
     setDoc(doc(company, "companyStatus", "company"), { verification: "verified" }),

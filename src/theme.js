@@ -32,6 +32,11 @@ export function setPreference(pref) {
   window.dispatchEvent(new Event(CHANGED));
 }
 
+// A preferência guardada na conta prevalece: é a mesma em todos os dispositivos.
+export function adoptAccountPreference(pref) {
+  if (["auto", "dark", "light"].includes(pref) && pref !== readPreference()) setPreference(pref);
+}
+
 // Todos os componentes que usam o hook ficam sincronizados (barra de topo, conta, logo).
 export function useTheme() {
   const [pref, setPref] = useState(readPreference);

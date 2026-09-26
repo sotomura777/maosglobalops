@@ -263,6 +263,11 @@ function YourData() {
 
 function Appearance() {
   const { pref } = useTheme();
+  const { user, profile } = useAuth();
+  const choose = (value) => {
+    setPreference(value);
+    if (user && profile) updateProfile(user.uid, { theme: value }).catch(() => {});
+  };
   return (
     <fieldset className="audience" style={{ marginTop: 20 }}>
       <legend>Aparência</legend>
@@ -276,7 +281,7 @@ function Appearance() {
             type="radio"
             name="appearance"
             checked={pref === value}
-            onChange={() => setPreference(value)}
+            onChange={() => choose(value)}
           />
           <span>
             <strong>{label}</strong>

@@ -441,7 +441,24 @@ test("empresa e profissional: publicar, pesquisar, guardar, contratar, conversar
       exact: true,
     }),
   ).toBeVisible();
+  // Ana marks the 15th of next month as a day she can't work; companies looking for
+  // someone that day no longer see her.
+  const next = new Date();
+  next.setDate(1);
+  next.setMonth(next.getMonth() + 1);
+  const offDay = `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}-15`;
+  await worker.goto("/app/perfil");
+  await worker.getByRole("button", { name: "Editar disponibilidade e funções" }).click();
+  await worker.locator(".calendar").nth(1).locator(".calendar-day", { hasText: /^15$/ }).click();
+  await expect(worker.getByText("1 dia marcado.")).toBeVisible();
+  await worker.screenshot({ path: testInfo.outputPath("calendario-mobile.png"), fullPage: true });
+  await worker.getByRole("button", { name: "Guardar perfil" }).click();
+  await expect(worker.getByRole("status")).toHaveText("Perfil guardado.");
   await company.goto("/app/diretorio");
+  await company.getByLabel("Pesquisar").fill("Ana Silva");
+  await company.getByLabel("Livre no dia").fill(offDay);
+  await expect(company.getByRole("link").filter({ hasText: "Ana Silva" })).toHaveCount(0);
+  await company.getByLabel("Livre no dia").fill("");
   await company.getByLabel("Pesquisar").fill("Ana Silva");
   await company.getByRole("link").filter({ hasText: "Ana Silva" }).click();
   await expect(

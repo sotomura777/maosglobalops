@@ -16,13 +16,22 @@ export default function Logo({ colors, surface, ...props }) {
 
 // Logo da GlobalOps para barras de topo: o MAOS-globo e "GLOBAL / OPS" em letra legível.
 // (A variante horizontal do kit escala o texto com a altura e fica ilegível a esta dimensão.)
-export function Wordmark({ height = 28, textSize = 12, className, surface }) {
+// muted: versão discreta em cinzento (rodapés).
+const MUTED = { letters: "var(--text-3)", o: "var(--text-4)", accent: "var(--text-4)", dot: "var(--text-3)", text: "var(--text-3)", ops: "var(--text-4)" };
+export function Wordmark({ height = 28, textSize = 12, className, surface, muted = false }) {
   const { theme } = useTheme();
-  const c = GOP_THEMES[theme];
+  const c = muted ? { ...GOP_THEMES[theme], ...MUTED } : GOP_THEMES[theme];
   const word = { font: `700 ${textSize}px/1 'Public Sans', sans-serif`, letterSpacing: ".22em" };
   return (
     <span className={className} role="img" aria-label="MaosGlobalOps" style={{ display: "inline-flex", alignItems: "center", gap: Math.round(textSize * 0.9) }}>
-      <GlobalOpsLogo variant="globe" height={height} title="" aria-hidden="true" theme={theme} colors={{ bg: surface?.[theme] || SURFACE[theme] }} />
+      <GlobalOpsLogo
+        variant="globe"
+        height={height}
+        title=""
+        aria-hidden="true"
+        theme={theme}
+        colors={{ ...(muted ? MUTED : {}), bg: surface?.[theme] || SURFACE[theme] }}
+      />
       <span aria-hidden="true" style={{ width: 1, height: Math.round(height * 0.7), background: c.divider }} />
       <span aria-hidden="true" style={{ display: "flex", flexDirection: "column", gap: Math.round(textSize * 0.35) }}>
         <span style={{ ...word, color: c.text }}>GLOBAL</span>

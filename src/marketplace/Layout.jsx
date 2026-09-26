@@ -6,7 +6,8 @@ import { useMarket } from "./context";
 import { initials } from "../ui";
 import { useIsAdmin } from "./useIsAdmin";
 import { Wordmark } from "../brand/Logo";
-import { useTheme, setPreference } from "../theme";
+import { useTheme, setPreference, adoptAccountPreference } from "../theme";
+import { updateProfile } from "../services/profileService";
 export function Icon({ name, ...props }) {
   const paths = {
     home: "M3 10 12 3l9 7v10H6V10m3 10v-7h6v7",
@@ -44,13 +45,18 @@ export function Icon({ name, ...props }) {
 // Alterna entre claro e escuro. A opção "Automático" está em Segurança da conta.
 export function ThemeToggle({ className = "icon-button" }) {
   const { theme } = useTheme();
+  const { user, profile } = useAuth() || {};
   const next = theme === "light" ? "dark" : "light";
   return (
     <button
       type="button"
       className={className}
       aria-label={next === "light" ? "Mudar para modo claro" : "Mudar para modo escuro"}
-      onClick={() => setPreference(next)}
+      onClick={() => {
+        setPreference(next);
+        // Com sessão, guarda também na conta (vale noutros dispositivos).
+        if (user && profile) updateProfile(user.uid, { theme: next }).catch(() => {});
+      }}
     >
       <Icon name={next === "light" ? "sun" : "moon"} />
     </button>
@@ -123,6 +129,7 @@ export default function Layout() {
   ).length;
   const company = profile.kind === "company";
   const admin = useIsAdmin();
+  useEffect(() => adoptAccountPreference(profile.theme), [profile.theme]);
   const nav = [
     ["/app", "home", "Início"],
     [

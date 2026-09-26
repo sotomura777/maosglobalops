@@ -17,7 +17,14 @@ import {
   setFavorite,
 } from "./service";
 import { useMarket } from "./context";
-import { dateLabel, attendanceRate } from "./model";
+import {
+  dateLabel,
+  attendanceRate,
+  today,
+  calendarMonths,
+  upcomingDates,
+  isFreeOn,
+} from "./model";
 import { CATEGORIES, DISTRICTS, AVAILABILITY, PREFS } from "../constants";
 import { initials } from "../ui";
 import { Heading, Field, Empty, ErrorBox } from "./Layout";
@@ -30,6 +37,7 @@ export function Directory() {
   const [district, setDistrict] = useState("");
   const [available, setAvailable] = useState(false);
   const [onlyFavorites, setOnlyFavorites] = useState(false);
+  const [freeOn, setFreeOn] = useState("");
   const { favorites = [] } = useMarket();
   const favoriteIds = new Set(favorites.map((f) => f.id));
   useEffect(() => {
@@ -51,7 +59,8 @@ export function Directory() {
       (!cat || p.categories?.includes(cat)) &&
       (!district || p.district === district) &&
       (!available || p.availability === "disponivel") &&
-      (!onlyFavorites || favoriteIds.has(p.id)),
+      (!onlyFavorites || favoriteIds.has(p.id)) &&
+      (!freeOn || isFreeOn(p, freeOn)),
   );
   return (
     <>
@@ -76,6 +85,14 @@ export function Directory() {
               <option key={c}>{c}</option>
             ))}
           </select>
+        </Field>
+        <Field label="Livre no dia">
+          <input
+            type="date"
+            min={today()}
+            value={freeOn}
+            onChange={(e) => setFreeOn(e.target.value)}
+          />
         </Field>
         <Field label="Distrito">
           <select
@@ -667,6 +684,67 @@ function PastJobsEditor({ uid, hidden }) {
     </div>
   );
 }
+const WEEKDAYS = ["S", "T", "Q", "Q", "S", "S", "D"];
+// Dias em que a pessoa NÃO pode trabalhar nos próximos dois meses (por defeito está livre).
+function UnavailableCalendar({ value, onChange }) {
+  const first = today();
+  const toggle = (d) =>
+    onChange(value.includes(d) ? value.filter((x) => x !== d) : [...value, d]);
+  return (
+    <div className="calendar-block">
+      <p className="section-title" style={{ fontSize: 14, marginTop: 20 }}>
+        Dias em que não podes trabalhar
+      </p>
+      <p className="subtle">
+        Toca nos dias para os marcar. As empresas que procuram alguém para
+        esse dia deixam de te ver no diretório.
+      </p>
+      <div className="calendar-months">
+        {calendarMonths(first, 2).map((m) => (
+          <div key={m.key} className="calendar">
+            <strong className="calendar-title">
+              {new Date(`${m.key}-01T12:00:00`)
+                .toLocaleDateString("pt-PT", { month: "long", year: "numeric" })
+                .replace(/^./, (c) => c.toUpperCase())}
+            </strong>
+            <div className="calendar-grid" role="grid">
+              {WEEKDAYS.map((w, i) => (
+                <span key={i} className="calendar-weekday" aria-hidden="true">
+                  {w}
+                </span>
+              ))}
+              {m.weeks.flat().map((d, i) =>
+                !d ? (
+                  <span key={i} />
+                ) : (
+                  <button
+                    key={d}
+                    type="button"
+                    className={`calendar-day ${value.includes(d) ? "off" : ""}`}
+                    disabled={d < first}
+                    aria-pressed={value.includes(d)}
+                    aria-label={`${new Date(`${d}T12:00:00`).toLocaleDateString("pt-PT", { weekday: "long", day: "numeric", month: "long" })}${value.includes(d) ? ", indisponível" : ""}`}
+                    onClick={() => toggle(d)}
+                  >
+                    {Number(d.slice(8))}
+                  </button>
+                ),
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+      {value.length > 0 && (
+        <p className="subtle">
+          {value.length === 1 ? "1 dia marcado." : `${value.length} dias marcados.`}{" "}
+          <button type="button" className="quiet" onClick={() => onChange([])}>
+            Limpar
+          </button>
+        </p>
+      )}
+    </div>
+  );
+}
 export function EditProfile() {
   const { user, profile } = useAuth();
   const company = profile.kind === "company";
@@ -680,6 +758,7 @@ export function EditProfile() {
     categories: profile.categories || [],
     prefs: profile.prefs || [],
     availability: profile.availability || "disponivel",
+    unavailable: upcomingDates(profile.unavailable, today()),
     public: profile.public === true,
     importExperience: profile.importExperience === true,
     companyLegalName: profile.companyLegalName || "",
@@ -903,7 +982,11 @@ export function EditProfile() {
             return;
           }
           try {
-            let data = { ...form, name: form.name.trim() };
+            let data = {
+              ...form,
+              name: form.name.trim(),
+              unavailable: upcomingDates(form.unavailable, today()),
+            };
             if (Object.values(exp).some(Boolean)) {
               data.experience = [
                 ...data.experience,
@@ -1018,6 +1101,10 @@ export function EditProfile() {
                   ))}
                 </select>
               </Field>
+              <UnavailableCalendar
+                value={form.unavailable}
+                onChange={(v) => change("unavailable", v)}
+              />
               <div className="tabs" style={{ marginTop: 18, marginBottom: 0 }}>
                 {PREFS.map((p) => (
                   <button

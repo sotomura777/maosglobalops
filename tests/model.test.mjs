@@ -11,6 +11,9 @@ import {
   personalEarnings,
   summarizeEarnings,
   safeNext,
+  calendarMonths,
+  upcomingDates,
+  isFreeOn,
 } from "../src/marketplace/model.js";
 test("worker and company must each confirm the agreed stages", () => {
   assert.deepEqual(
@@ -164,4 +167,30 @@ test("after login, only return to a page inside the app", () => {
   assert.equal(safeNext("/app/trabalhos/abc123"), "/app/trabalhos/abc123");
   for (const bad of [null, "", "https://evil.example", "//evil.example", "/app/../x", "/entrar", "/app\\evil", "javascript:alert(1)"])
     assert.equal(safeNext(bad), "/app", String(bad));
+});
+
+test("the availability calendar starts on Monday and covers the coming months", () => {
+  const [sep, oct] = calendarMonths("2026-09-26", 2);
+  assert.equal(sep.key, "2026-09");
+  assert.equal(oct.key, "2026-10");
+  // 1 Sep 2026 is a Tuesday: one empty slot before it.
+  assert.deepEqual(sep.weeks[0].slice(0, 2), [null, "2026-09-01"]);
+  assert.equal(sep.weeks.flat().filter(Boolean).length, 30);
+  assert.ok(sep.weeks.every((w) => w.length === 7));
+});
+
+test("only future unavailable days are kept, sorted and capped", () => {
+  assert.deepEqual(
+    upcomingDates(["2026-10-02", "2026-09-01", "ontem", "2026-09-26", "2026-10-02"], "2026-09-26"),
+    ["2026-09-26", "2026-10-02"],
+  );
+  const many = Array.from({ length: 200 }, (_, i) => `2027-${String((i % 12) + 1).padStart(2, "0")}-${String((i % 28) + 1).padStart(2, "0")}`);
+  assert.ok(upcomingDates(many, "2026-09-26").length <= 120);
+});
+
+test("someone is free on a day unless they marked it or are not taking work", () => {
+  assert.equal(isFreeOn({ availability: "disponivel", unavailable: ["2026-10-02"] }, "2026-10-02"), false);
+  assert.equal(isFreeOn({ availability: "disponivel", unavailable: ["2026-10-02"] }, "2026-10-03"), true);
+  assert.equal(isFreeOn({ availability: "indisponivel" }, "2026-10-03"), false);
+  assert.equal(isFreeOn({}, ""), true);
 });

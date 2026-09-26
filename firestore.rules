@@ -20,6 +20,7 @@ service cloud.firestore {
         d.get('categories',[]) is list && d.get('categories',[]).size() <= 12 &&
         d.get('prefs',[]) is list && d.get('prefs',[]).size() <= 4 &&
         d.get('experience',[]) is list && d.get('experience',[]).size() <= 50 &&
+        d.get('unavailable',[]) is list && d.get('unavailable',[]).size() <= 120 &&
         d.get('availability','disponivel') in ['disponivel','limitada','indisponivel'];
     }
     match /profiles/{uid} {
@@ -28,8 +29,9 @@ service cloud.firestore {
         request.resource.data.kind in ['worker','company'] && request.resource.data.gdprConsent == true &&
         request.resource.data.email == request.auth.token.email && profileEdit();
       allow update: if self(uid) && profileEdit() && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-        'name','headline','bio','district','phone','languages','categories','prefs','availability','public','experience','companyLegalName','website','updatedAt','importExperience','emailNotifications'
+        'name','headline','bio','district','phone','languages','categories','prefs','availability','public','experience','companyLegalName','website','updatedAt','importExperience','emailNotifications','theme','unavailable'
       ]) && request.resource.data.get('importExperience',false) is bool &&
+        request.resource.data.get('theme','auto') in ['auto','dark','light'] &&
         request.resource.data.get('emailNotifications',true) is bool &&
         (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['public']) ||
           getAfter(/databases/$(database)/documents/publicProfiles/$(uid)).data.public == request.resource.data.public);
@@ -82,7 +84,7 @@ service cloud.firestore {
     match /publicProfiles/{uid} {
       allow read: if self(uid) || (signed() && resource.data.public == true);
       allow create, update: if self(uid) && profileEdit() &&
-        request.resource.data.keys().hasOnly(['kind','name','public','headline','bio','district','languages','companyLegalName','website','availability','categories','prefs','experience']) &&
+        request.resource.data.keys().hasOnly(['kind','name','public','headline','bio','district','languages','companyLegalName','website','availability','categories','prefs','experience','unavailable']) &&
         request.resource.data.kind == getAfter(/databases/$(database)/documents/profiles/$(uid)).data.kind &&
         request.resource.data.public == getAfter(/databases/$(database)/documents/profiles/$(uid)).data.get('public',false);
     }

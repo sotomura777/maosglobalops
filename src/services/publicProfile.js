@@ -16,6 +16,11 @@ export function publicProfile(data) {
   ]) {
     if (typeof data[key] === "string") result[key] = data[key];
   }
+  // Dias em que a pessoa não pode trabalhar: as empresas filtram o diretório por data.
+  if (Array.isArray(data.unavailable))
+    result.unavailable = data.unavailable.filter(
+      (d) => typeof d === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d),
+    );
   for (const key of ["categories", "prefs"]) {
     if (Array.isArray(data[key]))
       result[key] = data[key].filter((v) => typeof v === "string");
