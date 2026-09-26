@@ -560,6 +560,26 @@ test("empresa e profissional: publicar, pesquisar, guardar, contratar, conversar
     path: testInfo.outputPath("inicio-mobile.png"),
     fullPage: true,
   });
+  // The same pages with real data in light mode.
+  await worker.evaluate(() => localStorage.setItem("gop-theme", "light"));
+  for (const path of ["/app", engagementPath, "/app/ganhos", "/app/meus-trabalhos"]) {
+    await worker.goto(path);
+    await expect(worker.locator(".market-main")).toBeVisible();
+    await expect(worker.getByRole("status")).toHaveCount(0);
+    const overflow = await worker.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth + 1,
+    );
+    expect(overflow, `Overflow at ${path} (claro)`).toBe(false);
+    await worker.screenshot({
+      path: testInfo.outputPath(`claro${path.replaceAll("/", "-")}-mobile.png`),
+      fullPage: true,
+    });
+  }
+  await company.evaluate(() => localStorage.setItem("gop-theme", "light"));
+  await company.goto(jobPath);
+  await company.screenshot({ path: testInfo.outputPath("claro-oferta-desktop.png"), fullPage: true });
+  await company.goto("/app/equipa");
+  await company.screenshot({ path: testInfo.outputPath("claro-equipa-desktop.png"), fullPage: true });
   // Each contracting step queued an email; in the emulator nothing leaves (dry run).
   const mail = await company.request.get(
     "http://127.0.0.1:8080/v1/projects/demo-globalops/databases/(default)/documents/mailLog?pageSize=100",

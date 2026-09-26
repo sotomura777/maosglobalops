@@ -91,3 +91,42 @@ test("RGPD: páginas legais públicas, descarregar os dados e apagar a conta", a
   );
   expect((await lookup.json()).users).toBeUndefined();
 });
+
+test("modo claro: segue o sistema, muda pelo ícone e fica guardado", async ({ browser }, testInfo) => {
+  const context = await browser.newContext({ colorScheme: "light", viewport: { width: 390, height: 844 }, isMobile: true });
+  const page = await context.newPage();
+  const theme = () => page.evaluate(() => document.documentElement.dataset.theme);
+  // Automático: o telemóvel está em modo claro.
+  await page.goto("/");
+  expect(await theme()).toBe("light");
+  await page.screenshot({ path: testInfo.outputPath("landing-claro-mobile.png"), fullPage: true });
+  await page.getByRole("button", { name: "Mudar para modo escuro" }).click();
+  expect(await theme()).toBe("dark");
+  await page.reload();
+  expect(await theme()).toBe("dark");
+  // Em Segurança da conta escolhe-se Claro, e fica depois de recarregar.
+  await page.goto("/registar");
+  await page.getByLabel("Nome", { exact: true }).fill("Clara Modo");
+  await page.getByLabel("Email", { exact: true }).fill(`claro-${Date.now()}@example.com`);
+  await page.getByLabel("Password (mín. 8)").fill("TesteSeguro123!");
+  await page.getByRole("checkbox").check();
+  await page.getByRole("button", { name: "Criar perfil", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Olá, Clara." })).toBeVisible();
+  await page.goto("/app/conta");
+  await page.getByRole("radio", { name: /^Claro/ }).check();
+  expect(await theme()).toBe("light");
+  await page.reload();
+  expect(await theme()).toBe("light");
+  for (const path of ["/app", "/app/trabalhos", "/app/perfil", "/app/ganhos", "/app/conta"]) {
+    await page.goto(path);
+    await expect(page.locator(".market-main")).toBeVisible();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+    expect(overflow, `Overflow at ${path}`).toBe(false);
+    await page.screenshot({ path: testInfo.outputPath(`claro${path.replaceAll("/", "-")}.png`), fullPage: true });
+  }
+  // Voltar a Automático segue outra vez o sistema.
+  await page.goto("/app/conta");
+  await page.getByRole("radio", { name: /^Automático/ }).check();
+  expect(await theme()).toBe("light");
+  await context.close();
+});

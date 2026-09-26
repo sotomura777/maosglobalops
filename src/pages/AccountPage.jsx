@@ -9,6 +9,7 @@ import { auth } from "../services/firebase";
 import { updateProfile } from "../services/profileService";
 import { signOut } from "../services/authService";
 import { exportMyData, deleteMyAccount } from "../marketplace/service";
+import { useTheme, setPreference } from "../theme";
 import { useAuth } from "../App";
 
 export default function AccountPage({ recovery = false }) {
@@ -159,6 +160,7 @@ export default function AccountPage({ recovery = false }) {
               Alterar a palavra-passe por email
             </Link>
           </p>
+          <Appearance />
           {profile && <YourData />}
           <p>
             <Link to="/app/perfil">Voltar ao perfil</Link>
@@ -256,5 +258,32 @@ function YourData() {
         </div>
       )}
     </section>
+  );
+}
+
+function Appearance() {
+  const { pref } = useTheme();
+  return (
+    <fieldset className="audience" style={{ marginTop: 20 }}>
+      <legend>Aparência</legend>
+      {[
+        ["auto", "Automático", "Segue o modo do telemóvel ou do computador."],
+        ["dark", "Escuro", "Preto e dourado."],
+        ["light", "Claro", "Branco, bordeaux e dourado."],
+      ].map(([value, label, hint]) => (
+        <label className="choice" key={value}>
+          <input
+            type="radio"
+            name="appearance"
+            checked={pref === value}
+            onChange={() => setPreference(value)}
+          />
+          <span>
+            <strong>{label}</strong>
+            <small>{hint}</small>
+          </span>
+        </label>
+      ))}
+    </fieldset>
   );
 }

@@ -4,7 +4,7 @@ import { useAuth } from "../App";
 import { getJob } from "../marketplace/service";
 import { JobFacts } from "../marketplace/Jobs";
 import { CompanyMark } from "../ui";
-import GlobalOpsLogo from "../brand/GlobalOpsLogo";
+import GlobalOpsLogo from "../brand/Logo";
 
 // Página partilhável de uma oferta: abre sem conta, para quem recebe a ligação.
 export default function PublicJobPage() {

@@ -81,7 +81,7 @@ export default function ChannelsPage() {
               <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()}
                 placeholder={`Mensagem para ${cur?.name || 'o canal'}…`} style={{ flex: 1, borderRadius: 12 }} />
               <button onClick={send} disabled={!text.trim()}
-                style={{ font: "700 13px/1 'Public Sans', sans-serif", color: '#0A0A0B', background: 'var(--text)', border: 'none', borderRadius: 12, padding: '14px 22px', opacity: text.trim() ? 1 : 0.5 }}>Enviar</button>
+                style={{ font: "700 13px/1 'Public Sans', sans-serif", color: 'var(--bg)', background: 'var(--text)', border: 'none', borderRadius: 12, padding: '14px 22px', opacity: text.trim() ? 1 : 0.5 }}>Enviar</button>
             </div>
           ) : (
             <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', fontSize: 13, color: 'var(--text-4)' }}>

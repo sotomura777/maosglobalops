@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { safeNext } from '../marketplace/model';
 import { useAuth } from '../App';
-import GlobalOpsLogo from '../brand/GlobalOpsLogo';
+import GlobalOpsLogo from '../brand/Logo';
 import { signUpCompany } from '../services/companyService';
 
 export default function RegisterCompanyPage() {
@@ -36,7 +36,7 @@ export default function RegisterCompanyPage() {
         <Link to="/" aria-label="MaosGlobalOps, página inicial" style={{ alignSelf: 'flex-start', marginBottom: 8 }}><GlobalOpsLogo variant="symbol" height={56} /></Link>
         <h1 style={{ fontSize: 26, fontWeight: 800 }}>Registar empresa</h1>
         <p style={{ fontSize: 13, color: 'var(--text-3)', margin: 0 }}>Acesso ao diretório de staff e publicação de trabalhos.</p>
-        {error && <div style={{ background: 'rgba(225,29,72,0.1)', border: '1px solid rgba(225,29,72,0.35)', borderRadius: 'var(--radius)', color: 'var(--danger)', padding: '10px 14px', fontSize: 13 }}>{error}</div>}
+        {error && <div style={{ background: 'color-mix(in srgb, var(--danger) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--danger) 35%, transparent)', borderRadius: 'var(--radius)', color: 'var(--danger)', padding: '10px 14px', fontSize: 13 }}>{error}</div>}
         <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, color: 'var(--text-3)' }}>Nome da empresa
           <input value={form.company} onChange={set('company')} autoComplete="organization" /></label>
         <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, color: 'var(--text-3)' }}>Email
@@ -47,7 +47,7 @@ export default function RegisterCompanyPage() {
           <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} style={{ width: 'auto', marginTop: 2 }} />
           <span>Aceito os <Link to="/termos" target="_blank">termos</Link> e o tratamento dos dados da empresa para gestão da conta, como descrito na <Link to="/privacidade" target="_blank">política de privacidade</Link>.</span>
         </label>
-        <button type="submit" disabled={saving} style={{ background: 'var(--text)', color: '#0A0A0B', fontWeight: 700, border: 'none', borderRadius: 99, padding: '15px 18px', opacity: saving ? 0.6 : 1 }}>
+        <button type="submit" disabled={saving} style={{ background: 'var(--text)', color: 'var(--bg)', fontWeight: 700, border: 'none', borderRadius: 99, padding: '15px 18px', opacity: saving ? 0.6 : 1 }}>
           {saving ? 'A criar…' : 'Registar empresa'}
         </button>
         <p style={{ fontSize: 13, color: 'var(--text-3)', textAlign: 'center' }}>

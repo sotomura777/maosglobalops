@@ -1,6 +1,9 @@
 import { Link } from 'react-router-dom';
 import { S, MONO, LightThread, CompanyMark, GOLD_GRAD } from '../ui';
-import GlobalOpsLogo, { GlobeGrid } from '../brand/GlobalOpsLogo';
+import GlobalOpsLogo from '../brand/Logo';
+import { GlobeGrid } from '../brand/GlobalOpsLogo';
+import { useTheme } from '../theme';
+import { ThemeToggle } from '../marketplace/Layout';
 
 const goldText = { background: GOLD_GRAD, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' };
 
@@ -16,6 +19,7 @@ const COMPANIES = [
 ];
 
 export default function LandingPage() {
+  const { theme } = useTheme();
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px', borderBottom: '1px solid var(--border)' }}>
@@ -25,19 +29,20 @@ export default function LandingPage() {
           <GlobalOpsLogo className="logo-compact" variant="small" height={18} />
         </Link>
         <nav style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <ThemeToggle />
           <Link to="/entrar" style={{ color: 'var(--text-2)', textDecoration: 'none', fontSize: 13, fontWeight: 500, padding: '12px 16px' }}>Entrar</Link>
           <Link to="/registar" style={{ ...S.btn, textDecoration: 'none' }}>Criar perfil</Link>
         </nav>
       </header>
 
       {/* hero centrado com gradiente radial e fio de luz */}
-      <main style={{ position: 'relative', overflow: 'hidden', padding: 'clamp(60px, 10vw, 92px) 24px clamp(52px, 8vw, 76px)', background: 'radial-gradient(70% 110% at 50% -10%, #1C1E22 0%, #0F1012 48%, #0A0A0B 100%)' }}>
-        <GlobeGrid />
+      <main style={{ position: 'relative', overflow: 'hidden', padding: 'clamp(60px, 10vw, 92px) 24px clamp(52px, 8vw, 76px)', background: 'radial-gradient(70% 110% at 50% -10%, var(--hero-1) 0%, var(--hero-2) 48%, var(--hero-3) 100%)' }}>
+        <GlobeGrid theme={theme} />
         <LightThread inset={44} />
         <div style={{ position: 'relative', maxWidth: 660, margin: '0 auto', textAlign: 'center' }}>
           {/* bg: a cor do fundo nesta zona, para a folga onde a órbita passa à frente do O */}
-          <GlobalOpsLogo variant="globe" height={56} colors={{ bg: '#15171A' }} style={{ margin: '0 auto 28px', display: 'block' }} />
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 9, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.09)', borderRadius: 99, padding: '8px 14px', marginBottom: 30 }}>
+          <GlobalOpsLogo variant="globe" height={56} surface={{ dark: '#15171A', light: '#FCFAF6' }} style={{ margin: '0 auto 28px', display: 'block' }} />
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 9, background: 'color-mix(in srgb, var(--text) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--text) 9%, transparent)', borderRadius: 99, padding: '8px 14px', marginBottom: 30 }}>
             <span style={{ width: 6, height: 6, borderRadius: 99, background: 'var(--green)' }} />
             <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-2)' }}>Aberto a staff e empresas — grátis</span>
           </div>
@@ -96,7 +101,7 @@ export default function LandingPage() {
                   <div style={{ fontSize: 14, fontWeight: 600 }}>{name}</div>
                   <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 5 }}>{sub}</div>
                 </div>
-                <span style={{ font: "600 10px/1 'Public Sans', sans-serif", color: 'var(--gold)', background: 'rgba(240,201,106,.12)', borderRadius: 99, padding: '6px 10px', flex: 'none' }}>{badge}</span>
+                <span style={{ font: "600 10px/1 'Public Sans', sans-serif", color: 'var(--gold)', background: 'color-mix(in srgb, var(--gold) 12%, transparent)', borderRadius: 99, padding: '6px 10px', flex: 'none' }}>{badge}</span>
               </div>
             ))}
           </div>

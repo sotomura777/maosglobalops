@@ -13,7 +13,7 @@ import { watchAuth, signOut } from "./services/authService";
 import LandingPage from "./pages/LandingPage";
 import AccountPage from "./pages/AccountPage";
 import LegalPage from "./pages/LegalPage";
-import GlobalOpsLogo from "./brand/GlobalOpsLogo";
+import GlobalOpsLogo from "./brand/Logo";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import RegisterCompanyPage from "./pages/RegisterCompanyPage";

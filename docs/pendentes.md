@@ -60,8 +60,10 @@ Ver [arquitetura-empresas.md](arquitetura-empresas.md), secção "Contrato".
 
 - [x] Ícones da app, favicon legível a 16 px, manifest e imagem de partilha, em preto e dourado. Para os gerar outra vez: `node scripts/brand/render-assets.mjs`.
 - [x] Pôr o logo na interface (tema escuro): barra de topo, login e registo, carregamento, página inicial e rodapé, página pública da oferta. O componente já está em `src/brand/GlobalOpsLogo.jsx`.
-- [ ] Modo claro (branco, bordeaux e dourado): tema em toda a app, com escolha do utilizador e o logo no tema `light`.
+- [x] Modo claro (branco, bordeaux e dourado): tema em toda a app, com escolha do utilizador e o logo no tema `light`.
 - [ ] Se a app passar a ter domínio próprio, atualizar o `og:image` no `index.html`.
+- [ ] (Opcional) Guardar a preferência de modo na conta, para ser a mesma em todos os dispositivos. Hoje fica em cada browser.
+- [ ] (Opcional) Ícones da app e imagem de partilha também em versão clara.
 
 ## 6. Produto — próximos passos possíveis
 

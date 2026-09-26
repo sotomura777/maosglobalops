@@ -5,7 +5,8 @@ import { signOut } from "../services/authService";
 import { useMarket } from "./context";
 import { initials } from "../ui";
 import { useIsAdmin } from "./useIsAdmin";
-import GlobalOpsLogo from "../brand/GlobalOpsLogo";
+import GlobalOpsLogo from "../brand/Logo";
+import { useTheme, setPreference } from "../theme";
 export function Icon({ name, ...props }) {
   const paths = {
     home: "M3 10 12 3l9 7v10H6V10m3 10v-7h6v7",
@@ -20,6 +21,8 @@ export function Icon({ name, ...props }) {
     bookmark: "M6 3h12v18l-6-4-6 4z",
     check: "M4 12l5 5L20 6",
     shield: "M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z",
+    sun: "M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8",
+    moon: "M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5",
   };
   return (
     <svg
@@ -36,6 +39,21 @@ export function Icon({ name, ...props }) {
     >
       <path d={paths[name] || paths.work} />
     </svg>
+  );
+}
+// Alterna entre claro e escuro. A opção "Automático" está em Segurança da conta.
+export function ThemeToggle({ className = "icon-button" }) {
+  const { theme } = useTheme();
+  const next = theme === "light" ? "dark" : "light";
+  return (
+    <button
+      type="button"
+      className={className}
+      aria-label={next === "light" ? "Mudar para modo claro" : "Mudar para modo escuro"}
+      onClick={() => setPreference(next)}
+    >
+      <Icon name={next === "light" ? "sun" : "moon"} />
+    </button>
   );
 }
 export default function Layout() {
@@ -73,6 +91,7 @@ export default function Layout() {
           <small>mercado de trabalho</small>
         </Link>
         <div className="header-actions">
+          <ThemeToggle />
           {admin && (
             <Link className="icon-button" to="/app/admin" aria-label="Administração">
               <Icon name="shield" />

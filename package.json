@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test tests/model.test.mjs tests/identity.test.mjs tests/schedule.test.mjs tests/mail.test.mjs tests/stats.test.mjs",
+    "test": "node --test tests/model.test.mjs tests/identity.test.mjs tests/schedule.test.mjs tests/mail.test.mjs tests/stats.test.mjs tests/theme.test.mjs",
     "test:rules": "node --test tests/rules.test.mjs",
     "test:e2e": "playwright test",
     "test:emulators": "firebase emulators:exec --only auth,firestore,functions --project demo-globalops --config firebase.test.json \"npm run test:rules && npm run test:contracting && npm run test:e2e\"",

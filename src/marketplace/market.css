@@ -122,7 +122,7 @@
   border-radius: 12px;
 }
 .market-sidebar nav a.active {
-  background: rgba(240, 201, 106, 0.09);
+  background: color-mix(in srgb, var(--gold) 9%, transparent);
   color: var(--gold);
 }
 .sidebar-extra {
@@ -189,7 +189,7 @@
   border-radius: 99px;
   padding: 13px 20px;
   background: var(--text);
-  color: #0a0a0b;
+  color: var(--bg);
   font-size: 12px;
   font-weight: 700;
   text-decoration: none;
@@ -202,12 +202,12 @@
 }
 .btn.gold {
   background: var(--gold);
-  color: #0a0a0b;
+  color: var(--on-gold);
 }
 .btn.danger {
-  background: rgba(225, 29, 72, 0.1);
-  color: #ff8a9f;
-  border: 1px solid rgba(225, 29, 72, 0.2);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  color: var(--danger-text);
+  border: 1px solid color-mix(in srgb, var(--danger) 20%, transparent);
 }
 .btn:disabled {
   opacity: 0.45;
@@ -399,13 +399,13 @@ select option {
 }
 .tag.green {
   color: var(--green);
-  background: rgba(52, 211, 153, 0.07);
-  border-color: rgba(52, 211, 153, 0.2);
+  background: color-mix(in srgb, var(--green) 7%, transparent);
+  border-color: color-mix(in srgb, var(--green) 20%, transparent);
 }
 .tag.gold {
   color: var(--gold);
-  border-color: rgba(240, 201, 106, 0.2);
-  background: rgba(240, 201, 106, 0.06);
+  border-color: color-mix(in srgb, var(--gold) 20%, transparent);
+  background: color-mix(in srgb, var(--gold) 6%, transparent);
 }
 .empty {
   text-align: center;
@@ -427,16 +427,16 @@ select option {
 .error-box {
   padding: 14px 18px;
   border-radius: 12px;
-  background: rgba(225, 29, 72, 0.09);
-  border: 1px solid rgba(225, 29, 72, 0.25);
-  color: #ff9eb0;
+  background: color-mix(in srgb, var(--danger) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 25%, transparent);
+  color: var(--danger-text);
   margin-bottom: 16px;
   font-size: 13px;
 }
 .success-box {
   padding: 14px 18px;
   border-radius: 12px;
-  background: rgba(52, 211, 153, 0.08);
+  background: color-mix(in srgb, var(--green) 8%, transparent);
   color: var(--green);
   margin-bottom: 16px;
   font-size: 13px;
@@ -507,7 +507,7 @@ select option {
 }
 .bubble.own {
   align-self: flex-end;
-  background: rgba(240, 201, 106, 0.1);
+  background: color-mix(in srgb, var(--gold) 10%, transparent);
 }
 .bubble small {
   display: block;
@@ -548,7 +548,7 @@ select option {
   margin-bottom: 12px;
 }
 .notification-card.unread {
-  border-color: rgba(240, 201, 106, 0.35);
+  border-color: color-mix(in srgb, var(--gold) 35%, transparent);
 }
 .profile-head {
   display: flex;
@@ -666,7 +666,7 @@ select option {
     left: 0;
     right: 0;
     z-index: 60;
-    background: rgba(10, 10, 11, 0.97);
+    background: color-mix(in srgb, var(--bg) 97%, transparent);
     backdrop-filter: blur(12px);
     border-top: 1px solid var(--border-mid);
     padding: 12px 5px max(14px, env(safe-area-inset-bottom));
@@ -809,8 +809,8 @@ select option {
   font-size: 28px;
 }
 .attention-panel {
-  background: rgba(240, 201, 106, 0.045);
-  border: 1px solid rgba(240, 201, 106, 0.22);
+  background: color-mix(in srgb, var(--gold) 4.5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--gold) 22%, transparent);
   border-radius: 18px;
   padding: 20px;
   margin-bottom: 20px;
@@ -859,8 +859,8 @@ select option {
   margin: 0 0 14px;
   padding: 12px 14px;
   border-radius: 12px;
-  border: 1px solid rgba(240, 201, 106, 0.35);
-  background: rgba(240, 201, 106, 0.08);
+  border: 1px solid color-mix(in srgb, var(--gold) 35%, transparent);
+  background: color-mix(in srgb, var(--gold) 8%, transparent);
   font-size: 13px;
   line-height: 1.5;
 }
@@ -1321,4 +1321,11 @@ a.setup-strip:focus-visible strong {
   .logo-compact {
     display: block !important;
   }
+}
+/* Modo claro: o cartão de destaque do início troca o gradiente escuro por um claro. */
+:root[data-theme="light"] .hero-market {
+  background: radial-gradient(ellipse at top left, #ffffff 0%, #fbf8f3 55%, #f3eee6 100%);
+}
+:root[data-theme="light"] .hero-market:before {
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--gold) 45%, transparent), transparent);
 }
