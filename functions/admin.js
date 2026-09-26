@@ -100,6 +100,64 @@ export function createAdmin(db, auth, clock = Date.now) {
         },
       };
     }
+    if (operation === "listDisputes") {
+      const status = data.status === "resolved" ? "resolved" : "open";
+      const snap = await db.collection("disputes").where("status", "==", status).limit(100).get();
+      return snap.docs
+        .map((d) => {
+          const r = d.data();
+          return {
+            id: d.id,
+            kind: r.kind,
+            lateMinutes: r.lateMinutes || 0,
+            workerId: r.workerId,
+            workerName: r.workerName || "",
+            companyName: r.companyName || "",
+            title: r.title || "",
+            companyNote: r.companyNote || "",
+            text: r.text || "",
+            decision: r.decision || "",
+            resolution: r.resolution || "",
+            createdAt: r.createdAt?.toMillis?.() || 0,
+          };
+        })
+        .sort((a, b) => b.createdAt - a.createdAt);
+    }
+    // Dar razão ao profissional retira a falta ou o atraso da reputação; manter não muda nada.
+    if (operation === "resolveDispute") {
+      const disputeRef = db.doc(`disputes/${id(data.id)}`);
+      const decision = data.decision === "overturn" ? "overturn" : "uphold";
+      const note = text(data.note ?? "", 1000, true);
+      await db.runTransaction(async (tx) => {
+        const d = (await tx.get(disputeRef)).data();
+        if (!d) fail("Contestação indisponível.", "not-found");
+        if (d.status !== "open") return;
+        tx.update(disputeRef, {
+          status: "resolved",
+          decision,
+          resolution: note,
+          resolvedBy: actorId,
+          resolvedAt: FieldValue.serverTimestamp(),
+        });
+        tx.update(db.doc(`engagements/${d.engagementId}`), {
+          dispute: decision === "overturn" ? "overturned" : "upheld",
+        });
+        if (decision === "overturn")
+          tx.set(
+            db.doc(`reputations/${d.workerId}`),
+            { [d.kind === "late" ? "late" : "noShows"]: FieldValue.increment(-1) },
+            { merge: true },
+          );
+        tx.set(db.collection("adminLog").doc(), {
+          actorId,
+          operation,
+          target: disputeRef.id,
+          note: `${decision} ${note}`,
+          at: FieldValue.serverTimestamp(),
+        });
+      });
+      return { ok: true };
+    }
     if (operation === "listCompanies") {
       const snap = await db
         .collection("profiles")

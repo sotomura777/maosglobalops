@@ -7,7 +7,8 @@ const requireFunctions = createRequire(
   new URL("../functions/package.json", import.meta.url),
 );
 const { initializeApp, deleteApp } = requireFunctions("firebase-admin/app");
-const { getFirestore } = requireFunctions("firebase-admin/firestore");
+const { getFirestore, FieldValue } = requireFunctions("firebase-admin/firestore");
+const FieldValueDelete = () => FieldValue.delete();
 process.env.FIRESTORE_EMULATOR_HOST = "127.0.0.1:8080";
 const app = initializeApp({ projectId: "demo-globalops" }, "contracting-tests");
 const db = getFirestore(app);
@@ -610,6 +611,45 @@ test("private offers are only seen and applied to by invitees; the company still
   assert.equal((await db.doc("jobs/p2").get()).data().visibility, "public");
   assert.equal((await db.doc("invitations/p2_worker").get()).data().private, false);
   await call("third", { operation: "apply", jobId: "p2", message: "" });
+});
+
+test("a worker contests a no-show or late mark once, within 7 days", async () => {
+  now = Date.parse("2097-01-01T09:00:00Z");
+  const shift = { ...job, date: "2097-02-01", vacancies: 2 };
+  await call("company", { operation: "publish", id: "disp", job: shift });
+  for (const w of ["other", "third"]) {
+    await call(w, { operation: "apply", jobId: "disp", message: "" });
+    await change("company", `disp_${w}`, "pending", "accepted");
+    await change(w, `disp_${w}`, "accepted", "confirmed");
+  }
+  now = scheduleOf(shift).endMs + 60000;
+  await change("company", "disp_other", "confirmed", "no_show", "Não apareceu");
+  const dispute = (uid, id, text = "Estive lá: tenho fotos e falei com o chefe de sala.") =>
+    call(uid, { operation: "dispute", id, text });
+  // Only the worker concerned, only for a no-show or a late mark, and with a reason.
+  await rejected(dispute("company", "disp_other"), /indisponível/);
+  await rejected(dispute("other", "disp_other", ""), /campos/);
+  await call("company", {
+    operation: "transition",
+    id: "disp_third",
+    expected: "confirmed",
+    next: "completion_requested",
+    note: "",
+  });
+  await change("third", "disp_third", "completion_requested", "completed");
+  await rejected(dispute("third", "disp_third"), /falta ou um atraso/);
+  await dispute("other", "disp_other");
+  await dispute("other", "disp_other");
+  const d = (await db.doc("disputes/disp_other").get()).data();
+  assert.equal(d.kind, "no_show");
+  assert.equal(d.status, "open");
+  assert.equal(d.companyId, "company");
+  assert.equal((await db.doc("engagements/disp_other").get()).data().dispute, "open");
+  // After 7 days the mark can no longer be contested.
+  await db.doc("disputes/disp_other").delete();
+  await db.doc("engagements/disp_other").update({ dispute: FieldValueDelete() });
+  now += 8 * 86400000;
+  await rejected(dispute("other", "disp_other"), /7 dias/);
 });
 
 test("daily quotas stop floods without charging retries", async () => {

@@ -98,6 +98,15 @@ Ver `docs/arquitetura-empresas.md`.
 - **Privada:** só os convidados a veem e se podem candidatar. Não tem ligação pública.
 - Um convite não é uma contratação: o convidado candidata-se e a empresa escolhe, como em qualquer oferta.
 
+### Contestações de faltas e atrasos
+
+- **Quem pode contestar:** o profissional, uma vez, até 7 dias depois da marcação, a partir da própria contratação.
+- **Onde se decide:** em **Administração → Contestações**, depois de ler a nota da empresa, o texto do profissional e, se preciso, a conversa da contratação.
+- **As decisões:**
+  - "Dar razão ao profissional" retira a falta ou o atraso da fiabilidade;
+  - "Manter a marcação" não muda nada.
+- A decisão fica registada e as duas partes veem o resultado na contratação.
+
 ### Tratar uma denúncia
 
 Em **Administração → Denúncias**:

@@ -10,6 +10,7 @@ const TABS = [
   ["stats", "Estatísticas"],
   ["companies", "Empresas"],
   ["reports", "Denúncias"],
+  ["disputes", "Contestações"],
   ["accounts", "Contas"],
 ];
 
@@ -45,6 +46,7 @@ export function AdminPage() {
       {tab === "stats" && <Stats />}
       {tab === "companies" && <Companies />}
       {tab === "reports" && <Reports />}
+      {tab === "disputes" && <Disputes />}
       {tab === "accounts" && <Accounts />}
     </>
   );
@@ -675,6 +677,103 @@ function Funnel() {
             </ol>
           </div>
         ))
+      )}
+    </div>
+  );
+}
+
+function Disputes() {
+  const [status, setStatus] = useState("open");
+  const [{ data, error }, reload] = useAdminQuery("listDisputes", { status });
+  return (
+    <div className="stack">
+      <p className="subtle">
+        Profissionais que contestam uma falta ou um atraso marcado pela empresa.
+        Ouve as duas partes (a conversa da contratação ajuda) antes de decidir.
+      </p>
+      <div className="tabs">
+        {[
+          ["open", "Por decidir"],
+          ["resolved", "Decididas"],
+        ].map(([id, label]) => (
+          <button key={id} className={status === id ? "active" : ""} onClick={() => setStatus(id)}>
+            {label}
+          </button>
+        ))}
+      </div>
+      <ErrorBox>{error}</ErrorBox>
+      {!data ? (
+        !error && <p className="subtle">A carregar…</p>
+      ) : data.length ? (
+        data.map((d) => <DisputeCard key={d.id} d={d} onDone={reload} />)
+      ) : (
+        <Empty title={status === "open" ? "Sem contestações por decidir" : "Sem contestações decididas"}>
+          As contestações aparecem aqui quando um profissional discorda de uma falta ou de um atraso.
+        </Empty>
+      )}
+    </div>
+  );
+}
+
+function DisputeCard({ d, onDone }) {
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const decide = async (decision) => {
+    setBusy(true);
+    setError("");
+    try {
+      await adminApi("resolveDispute", { id: d.id, decision, note });
+      onDone();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const what = d.kind === "late" ? `Atraso de ${d.lateMinutes} min` : "Falta";
+  return (
+    <div className="panel stack">
+      <div className="row between wrap">
+        <strong>
+          {what} · {d.title}
+        </strong>
+        <span className={`tag ${d.decision ? "green" : "gold"}`}>
+          {d.decision ? (d.decision === "overturn" ? "Retirada" : "Mantida") : "Por decidir"}
+        </span>
+      </div>
+      <div className="detail-grid">
+        <div>
+          <small>Profissional</small>
+          <strong>{d.workerName || "—"}</strong>
+        </div>
+        <div>
+          <small>Empresa</small>
+          <strong>{d.companyName || "—"}</strong>
+        </div>
+      </div>
+      {d.companyNote && <p className="subtle">Nota da empresa: “{d.companyNote}”</p>}
+      <p>Profissional: “{d.text}”</p>
+      <Link className="quiet" to={`/app/profissionais/${d.workerId}`}>
+        Ver perfil do profissional →
+      </Link>
+      {d.decision ? (
+        <p className="subtle">Decisão: {d.resolution}</p>
+      ) : (
+        <>
+          <Field label="Decisão (fica registada)">
+            <textarea rows="2" maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} />
+          </Field>
+          <ErrorBox>{error}</ErrorBox>
+          <div className="actions">
+            <button className="btn gold" disabled={busy || !note.trim()} onClick={() => decide("overturn")}>
+              Dar razão ao profissional
+            </button>
+            <button className="btn secondary" disabled={busy || !note.trim()} onClick={() => decide("uphold")}>
+              Manter a marcação
+            </button>
+          </div>
+        </>
       )}
     </div>
   );

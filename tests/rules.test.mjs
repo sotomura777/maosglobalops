@@ -469,6 +469,14 @@ test("favourites are private to the company; invitations only to the company and
     }),
   );
 });
+test("disputes are read by the two parties only and written by the server", async () => {
+  await seed("disputes", "dx", { engagementId: "dx", workerId: "worker", companyId: "company", status: "open" });
+  await assertSucceeds(getDoc(doc(worker, "disputes", "dx")));
+  await assertSucceeds(getDoc(doc(company, "disputes", "dx")));
+  await assertFails(getDoc(doc(stranger, "disputes", "dx")));
+  await assertFails(setDoc(doc(worker, "disputes", "dy"), { workerId: "worker", status: "open" }));
+  await assertFails(updateDoc(doc(worker, "disputes", "dx"), { status: "resolved" }));
+});
 test("handover requests are visible only to the company and the person", async () => {
   await seed("handovers", "company_worker", {
     companyId: "company",

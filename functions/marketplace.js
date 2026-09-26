@@ -260,6 +260,46 @@ export function createMarketplace(db, clock = Date.now) {
     }
     if (operation === "handover")
       return confirmHandover(db, uid, id(data.workerId), data.done, fail);
+    // O profissional contesta uma falta ou um atraso; quem decide é a administração.
+    if (operation === "dispute") {
+      const engagementId = id(data.id);
+      const reason = text(data.text ?? "", 1000, true);
+      const ref = db.doc(`engagements/${engagementId}`),
+        disputeRef = db.doc(`disputes/${engagementId}`);
+      await db.runTransaction(async (tx) => {
+        const [snap, existing] = await Promise.all([tx.get(ref), tx.get(disputeRef)]);
+        const a = snap.data();
+        if (!a || a.workerId !== uid)
+          fail("Contratação indisponível.", "permission-denied");
+        if (existing.exists) return; // Repetir não abre outra contestação.
+        const kind =
+          a.status === "no_show"
+            ? "no_show"
+            : a.status === "completed" && a.attendance?.status === "late"
+              ? "late"
+              : null;
+        if (!kind) fail("Só podes contestar uma falta ou um atraso registado.");
+        const markedAt = a.statusAt?.toMillis?.() ?? 0;
+        if (clock() - markedAt > 7 * 86400000)
+          fail("O prazo de 7 dias para contestar esta marcação terminou.");
+        tx.create(disputeRef, {
+          engagementId,
+          workerId: a.workerId,
+          workerName: a.workerName || "",
+          companyId: a.companyId,
+          companyName: a.companyName || "",
+          title: a.title || "",
+          kind,
+          lateMinutes: kind === "late" ? a.attendance.lateMinutes || 0 : 0,
+          companyNote: a.note || "",
+          text: reason,
+          status: "open",
+          createdAt: FieldValue.serverTimestamp(),
+        });
+        tx.update(ref, { dispute: "open" });
+      });
+      return { ok: true };
+    }
     if (operation !== "transition")
       fail("Operação inválida.", "invalid-argument");
     const ref = db.doc(`engagements/${id(data.id)}`);
@@ -377,6 +417,8 @@ export function createMarketplace(db, clock = Date.now) {
       const patch = {
         status: next,
         previousStatus: a.status,
+        // Hora da mudança pelo relógio do servidor (conta o prazo para contestar).
+        statusAt: Timestamp.fromMillis(now),
         actorId: uid,
         note,
         statusUpdatedAt: FieldValue.serverTimestamp(),

@@ -212,3 +212,28 @@ test("the funnel shows where people drop off in the chosen period", async () => 
   assert.deepEqual(week.workers, { signedUp: 2, applied: 0 });
   assert.equal(week.applications.sent, 0);
 });
+
+test("the administration settles a disputed mark; overturning removes it from the reputation", async () => {
+  await db.doc("reputations/ana").set({ workerId: "ana", noShows: 2, late: 1 });
+  const open = (id, kind) =>
+    Promise.all([
+      db.doc(`disputes/${id}`).set({ engagementId: id, workerId: "ana", companyId: "acme", kind, text: "Estive lá", status: "open", createdAt: new Date() }),
+      db.doc(`engagements/${id}`).set({ workerId: "ana", companyId: "acme", status: kind === "late" ? "completed" : "no_show", dispute: "open" }),
+    ]);
+  await open("d-ns", "no_show");
+  await open("d-late", "late");
+  await rejected(admin({ auth: { uid: "ana", token: {} }, data: { operation: "listDisputes" } }), /administração/);
+  assert.deepEqual((await asAdmin({ operation: "listDisputes", status: "open" })).map((d) => d.id).sort(), ["d-late", "d-ns"]);
+  await rejected(asAdmin({ operation: "resolveDispute", id: "d-ns", decision: "overturn", note: "" }), /campos/);
+  await asAdmin({ operation: "resolveDispute", id: "d-ns", decision: "overturn", note: "Fotos confirmam a presença" });
+  await asAdmin({ operation: "resolveDispute", id: "d-late", decision: "uphold", note: "Empresa confirmou o atraso" });
+  // Repeating a decision changes nothing.
+  await asAdmin({ operation: "resolveDispute", id: "d-ns", decision: "overturn", note: "outra vez" });
+  const rep = (await db.doc("reputations/ana").get()).data();
+  assert.equal(rep.noShows, 1);
+  assert.equal(rep.late, 1);
+  assert.equal((await db.doc("engagements/d-ns").get()).data().dispute, "overturned");
+  assert.equal((await db.doc("engagements/d-late").get()).data().dispute, "upheld");
+  assert.equal((await db.doc("disputes/d-ns").get()).data().decision, "overturn");
+  assert.deepEqual(await asAdmin({ operation: "listDisputes", status: "open" }), []);
+});

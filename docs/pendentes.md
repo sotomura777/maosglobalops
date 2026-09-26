@@ -62,14 +62,14 @@ Ver [arquitetura-empresas.md](arquitetura-empresas.md), secção "Contrato".
 - [x] Pôr o logo na interface (tema escuro): barra de topo, login e registo, carregamento, página inicial e rodapé, página pública da oferta. O componente já está em `src/brand/GlobalOpsLogo.jsx`.
 - [x] Modo claro (branco, bordeaux e dourado): tema em toda a app, com escolha do utilizador e o logo no tema `light`.
 - [ ] Se a app passar a ter domínio próprio, atualizar o `og:image` no `index.html`.
-- [ ] (Opcional) Guardar a preferência de modo na conta, para ser a mesma em todos os dispositivos. Hoje fica em cada browser.
+- [x] Preferência de modo guardada na conta.
 - [ ] (Opcional) Ícones da app e imagem de partilha também em versão clara.
 
 ## 6. Produto — próximos passos possíveis
 
-- [ ] Disputas de presenças (v2).
-- [ ] Métricas de percurso no admin (registo → candidatura → contratação).
+- [x] Disputas de presenças: contestação pelo profissional (7 dias), decisão da administração.
+- [x] Métricas de percurso no admin (registo → candidatura → contratação).
 - [ ] Contas de empresa com vários membros e papéis.
 - [ ] Avisos no telemóvel (PWA e push).
-- [ ] Disponibilidade por intervalo e calendário.
+- [x] Calendário de disponibilidade (dias em que não pode trabalhar) e filtro "Livre no dia".
 - [ ] Pagamentos pela plataforma (só depois de validar o resto).

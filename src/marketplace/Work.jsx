@@ -27,6 +27,7 @@ import {
   watchDrafts,
   deleteDraft,
   getPublicProfile,
+  disputeMark,
 } from "./service";
 export function ApplicationCard({ a, job }) {
   const { profile } = useAuth();
@@ -308,6 +309,73 @@ export function MyWork() {
     </>
   );
 }
+const DISPUTE_TEXT = {
+  open: "Contestação em análise pela administração.",
+  overturned: "A administração deu razão ao profissional: a marcação foi retirada da fiabilidade.",
+  upheld: "A administração analisou e manteve a marcação.",
+};
+// O profissional pode contestar uma falta ou um atraso até 7 dias depois; a administração decide.
+function DisputePanel({ a, company }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const kind =
+    a.status === "no_show" ? "falta" : a.status === "completed" && a.attendance?.status === "late" ? "atraso" : null;
+  if (!kind) return null;
+  if (a.dispute)
+    return (
+      <p className="notice" role="status">
+        {company && a.dispute === "open"
+          ? "O profissional contestou esta marcação. A administração vai analisar."
+          : DISPUTE_TEXT[a.dispute]}
+      </p>
+    );
+  const markedAt = timestampMillis(a.statusAt);
+  if (company || !markedAt || Date.now() - markedAt > 7 * 86400000) return null;
+  if (!open)
+    return (
+      <button type="button" className="quiet report-link" onClick={() => setOpen(true)}>
+        Não concordas com o registo de {kind}? Contestar
+      </button>
+    );
+  return (
+    <form
+      className="panel stack"
+      style={{ marginTop: 16 }}
+      onSubmit={async (e) => {
+        e.preventDefault();
+        setBusy(true);
+        setError("");
+        try {
+          await disputeMark(a.id, text);
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      <strong>Contestar o registo de {kind}</strong>
+      <p className="subtle">
+        Explica o que aconteceu. A administração ouve as duas partes; se te der
+        razão, a marcação sai da tua fiabilidade. Só podes contestar uma vez.
+      </p>
+      <Field label="O que aconteceu">
+        <textarea rows="4" maxLength={1000} required value={text} onChange={(e) => setText(e.target.value)} />
+      </Field>
+      <ErrorBox>{error}</ErrorBox>
+      <div className="actions">
+        <button className="btn gold" disabled={busy || !text.trim()}>
+          {busy ? "A enviar…" : "Enviar contestação"}
+        </button>
+        <button type="button" className="btn secondary" onClick={() => setOpen(false)}>
+          Cancelar
+        </button>
+      </div>
+    </form>
+  );
+}
 export function Engagement() {
   const { id } = useParams();
   return <EngagementView key={id} />;
@@ -557,6 +625,7 @@ function EngagementView() {
               </button>
             ))}
         </div>
+        <DisputePanel a={a} company={company} />
         {a.status === "confirmed" && !started && (
           <details className="secondary-actions">
             <summary>Mais opções</summary>

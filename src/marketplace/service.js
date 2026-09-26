@@ -287,3 +287,4 @@ export const watchInvitations = (uid, cb, err) =>
     (s) => cb(rows(s)),
     err,
   );
+export const disputeMark = (id, text) => contract({ operation: "dispute", id, text });
