@@ -1,81 +1,265 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../App';
-import { addWorkEntry, deleteWorkEntry, listWorkEntries } from '../services/workService';
+import { useState, useEffect, useMemo } from "react";
+import { useAuth } from "../App";
+import {
+  addWorkEntry,
+  deleteWorkEntry,
+  listWorkEntries,
+} from "../services/workService";
+import { Heading, Field, ErrorBox } from "../marketplace/Layout";
+import {
+  money,
+  today,
+  dateLabel,
+  platformEarnings,
+  personalEarnings,
+  summarizeEarnings,
+} from "../marketplace/model";
+import { useMarket } from "../marketplace/context";
+import { useJobDetails } from "../marketplace/useJobs";
+import { getMarketStats } from "../marketplace/service";
 
-const eur = (v) => `${(Math.round(v * 100) / 100).toLocaleString('pt-PT')} €`;
-
+const MIN_SAMPLE = 5;
+const monthLabel = (m) =>
+  new Date(`${m}-01T12:00:00`).toLocaleDateString("pt-PT", { month: "long", year: "numeric" });
 export default function EarningsPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const { applications } = useMarket();
+  const [market, setMarket] = useState(null);
   const [entries, setEntries] = useState(null);
-  const [form, setForm] = useState({ date: new Date().toISOString().slice(0, 10), hours: '', rate: '', company: '' });
-  const [saving, setSaving] = useState(false);
-
-  const load = () => listWorkEntries(user.uid).then(setEntries).catch(() => setEntries([]));
-  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const add = async () => {
-    const hours = Number(String(form.hours).replace(',', '.'));
-    const rate = Number(String(form.rate).replace(',', '.'));
-    if (!form.date || !(hours > 0) || !(rate >= 0)) return alert('Data, horas e valor/hora são obrigatórios.');
-    setSaving(true);
-    try {
-      await addWorkEntry(user.uid, { date: form.date, hours, rate, company: form.company.trim() || null });
-      setForm(f => ({ ...f, hours: '', rate: '', company: '' }));
-      load();
-    } catch { alert('Erro ao guardar.'); }
-    finally { setSaving(false); }
-  };
-
-  const stats = useMemo(() => {
-    const all = entries || [];
-    const now = new Date();
-    const mPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const yPrefix = String(now.getFullYear());
-    const sum = (list) => list.reduce((a, e) => ({ h: a.h + e.hours, v: a.v + e.hours * e.rate }), { h: 0, v: 0 });
-    const total = sum(all), month = sum(all.filter(e => (e.date || '').startsWith(mPrefix))), year = sum(all.filter(e => (e.date || '').startsWith(yPrefix)));
-    return { total, month, year, avg: total.h > 0 ? total.v / total.h : 0 };
-  }, [entries]);
-
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({
+    date: today(),
+    hours: "",
+    rate: "",
+    company: "",
+  });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const load = () =>
+    listWorkEntries(user.uid)
+      .then(setEntries)
+      .catch(() => setError("Não foi possível carregar os registos."));
+  useEffect(() => {
+    load();
+    getMarketStats().then(setMarket).catch(() => {});
+  }, [user.uid]);
+  // Só os trabalhos feitos como profissional contam como ganhos.
+  const platform = useMemo(
+    () => (profile.kind === "worker" ? platformEarnings(applications) : []),
+    [applications, profile.kind],
+  );
+  const details = useJobDetails(platform);
+  const personal = useMemo(() => personalEarnings(entries || []), [entries]);
+  const stats = useMemo(
+    () => summarizeEarnings([...platform, ...personal], today().slice(0, 7)),
+    [platform, personal],
+  );
+  // A minha média por função comparada com o mercado no mesmo distrito (ou no país).
+  const comparison = useMemo(() => {
+    const byCategory = new Map();
+    for (const e of platform) {
+      const category = details[e.jobId]?.category;
+      if (!category || !e.hours) continue;
+      const c = byCategory.get(category) || { hours: 0, amount: 0, district: e.district };
+      c.hours += e.hours;
+      c.amount += e.amount;
+      byCategory.set(category, c);
+    }
+    return [...byCategory].map(([category, c]) => {
+      const rates = market?.rates || [];
+      const local = rates.find((r) => r.category === category && r.district === c.district);
+      const national = rates.find((r) => r.category === category && r.district === "");
+      const ref = local?.n >= MIN_SAMPLE ? local : national?.n >= MIN_SAMPLE ? national : null;
+      return { category, mine: c.amount / c.hours, ref };
+    });
+  }, [platform, details, market]);
   return (
-    <div style={{ minHeight: '100vh', padding: 24, maxWidth: 720, margin: '0 auto' }}>
-      <header style={{ marginBottom: 22 }}><Link to="/app" style={{ color: 'var(--text-2)', textDecoration: 'none' }}>← Início</Link></header>
-      <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 4 }}>Horas e ganhos</h1>
-      <p style={{ fontSize: 13, color: 'var(--text-3)', marginBottom: 16 }}>Registo pessoal e privado — só tu vês estes valores.</p>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 18 }}>
-        {[['Este mês', stats.month], ['Este ano', stats.year], ['Total', stats.total]].map(([lbl, s]) => (
-          <div key={lbl} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 14 }}>
-            <div style={{ fontSize: 11, color: 'var(--text-4)' }}>{lbl}</div>
-            <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--green)' }}>{eur(s.v)}</div>
-            <div style={{ fontSize: 12, color: 'var(--text-3)' }}>{Math.round(s.h * 10) / 10}h</div>
-          </div>
-        ))}
-        <div style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 14 }}>
-          <div style={{ fontSize: 11, color: 'var(--text-4)' }}>Média €/h</div>
-          <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--gold)' }}>{eur(stats.avg)}</div>
+    <>
+      <Heading
+        eyebrow="Só tu vês esta página"
+        title="Horas e ganhos"
+        action={
+          <button className="btn gold" onClick={() => setEditing(true)}>
+            Registar trabalho
+          </button>
+        }
+      >
+        Os trabalhos concluídos na GlobalOps entram sozinhos. Regista aqui os
+        que fizeste fora. Não representa pagamentos processados pela
+        plataforma.
+      </Heading>
+      <ErrorBox>{error}</ErrorBox>
+      <div className="earnings-summary">
+        <div>
+          <small>Este mês</small>
+          <strong>{money(stats.month.amount)}</strong>
+          <span>{Math.round(stats.month.hours * 10) / 10} horas</span>
+        </div>
+        <div>
+          <small>Total</small>
+          <strong>{money(stats.total.amount)}</strong>
+          <span>Média de {money(stats.average)}/h</span>
+        </div>
+        <div>
+          <small>Na GlobalOps</small>
+          <strong>{money(stats.averageApp)}/h</strong>
+          <span>{platform.length} {platform.length === 1 ? "trabalho concluído" : "trabalhos concluídos"}</span>
         </div>
       </div>
-
-      <div style={{ background: 'var(--card)', border: '1px solid var(--border-mid)', borderRadius: 'var(--radius)', padding: 14, marginBottom: 16, display: 'grid', gridTemplateColumns: '1fr 90px 90px 1fr auto', gap: 8 }}>
-        <input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
-        <input value={form.hours} onChange={e => setForm({ ...form, hours: e.target.value })} placeholder="Horas" inputMode="decimal" />
-        <input value={form.rate} onChange={e => setForm({ ...form, rate: e.target.value })} placeholder="€/h" inputMode="decimal" />
-        <input value={form.company} onChange={e => setForm({ ...form, company: e.target.value })} placeholder="Empresa (opcional)" />
-        <button onClick={add} disabled={saving} style={{ background: 'var(--text)', color: '#0A0A0B', fontWeight: 700, border: 'none', borderRadius: 'var(--radius-sm)', padding: '0 16px', opacity: saving ? 0.6 : 1 }}>+</button>
-      </div>
-
-      {entries === null ? <p style={{ color: 'var(--text-3)' }}>A carregar…</p> :
-        entries.length === 0 ? <p style={{ color: 'var(--text-3)' }}>Regista o teu primeiro dia de trabalho acima.</p> :
-        entries.map(e => (
-          <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 4px', borderBottom: '1px solid var(--border)', fontSize: 14 }}>
-            <span style={{ color: 'var(--text-3)', minWidth: 86 }}>{e.date}</span>
-            <span style={{ fontWeight: 700 }}>{e.hours}h × {eur(e.rate)}</span>
-            <span style={{ color: 'var(--green)', fontWeight: 700 }}>= {eur(e.hours * e.rate)}</span>
-            <span style={{ color: 'var(--text-3)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.company || ''}</span>
-            <button onClick={() => deleteWorkEntry(user.uid, e.id).then(load)} style={{ background: 'none', border: 'none', color: 'var(--text-4)' }}>×</button>
+      {comparison.length > 0 && (
+        <section className="panel" style={{ marginBottom: 20 }}>
+          <h2 className="section-title">Comparado com o mercado</h2>
+          {comparison.map((c) => (
+            <div className="review row between wrap" key={c.category}>
+              <strong>{c.category}</strong>
+              <p className="subtle">
+                A tua média: {money(c.mine)}/h
+                {c.ref
+                  ? ` · mercado${c.ref.district ? ` em ${c.ref.district}` : ""}: ${money(c.ref.avg)}/h (${c.ref.n} ofertas)`
+                  : " · ainda poucas ofertas para comparar"}
+              </p>
+            </div>
+          ))}
+        </section>
+      )}
+      {stats.byMonth.length > 1 && (
+        <section className="panel" style={{ marginBottom: 20 }}>
+          <h2 className="section-title">Por mês</h2>
+          {stats.byMonth.map((m) => (
+            <div className="review row between" key={m.month}>
+              <span>{monthLabel(m.month)}</span>
+              <span>
+                {Math.round(m.hours * 10) / 10} h · <strong>{money(m.amount)}</strong>
+              </span>
+            </div>
+          ))}
+        </section>
+      )}
+      {platform.length > 0 && (
+        <>
+          <h2 className="section-title" style={{ marginTop: 24 }}>
+            Trabalhos na GlobalOps
+          </h2>
+          {platform.map((e) => (
+            <div className="earnings-entry" key={e.id}>
+              <div>
+                <strong>{e.title}</strong>
+                <p className="subtle">
+                  {e.company} · {dateLabel(e.date)} · {e.hours} h
+                </p>
+              </div>
+              <strong>{money(e.amount)}</strong>
+              <span className="tag green">GlobalOps</span>
+            </div>
+          ))}
+        </>
+      )}
+      {editing && (
+        <form
+          className="panel form-grid"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const hours = Number(String(form.hours).replace(",", "."));
+            const rate = Number(String(form.rate).replace(",", "."));
+            if (
+              !(hours > 0 && hours <= 24) ||
+              !(rate >= 0 && rate <= 100000) ||
+              !form.date
+            )
+              return setError(
+                "Indica a data, até 24 horas e um valor/hora válido.",
+              );
+            setBusy(true);
+            setError("");
+            try {
+              await addWorkEntry(user.uid, {
+                date: form.date,
+                hours,
+                rate,
+                company: form.company.trim() || null,
+              });
+              setForm({ date: today(), hours: "", rate: "", company: "" });
+              setEditing(false);
+              await load();
+            } catch {
+              setError("Não foi possível guardar. Os campos foram mantidos.");
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          {[
+            ["date", "Data", "date"],
+            ["hours", "Horas", "text"],
+            ["rate", "Valor por hora (€)", "text"],
+            ["company", "Empresa (opcional)", "text"],
+          ].map(([key, label, type]) => (
+            <Field label={label} key={key}>
+              <input
+                required={key !== "company"}
+                type={type}
+                inputMode={
+                  ["rate", "hours"].includes(key) ? "decimal" : undefined
+                }
+                value={form[key]}
+                onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+              />
+            </Field>
+          ))}
+          <div className="wide actions">
+            <button className="btn gold" disabled={busy}>
+              Guardar registo
+            </button>
+            <button
+              type="button"
+              className="btn secondary"
+              onClick={() => setEditing(false)}
+            >
+              Cancelar
+            </button>
           </div>
-        ))}
-    </div>
+        </form>
+      )}
+      <h2 className="section-title" style={{ marginTop: 24 }}>
+        Registo pessoal
+      </h2>
+      {entries === null ? (
+        <p role="status">A carregar registos…</p>
+      ) : entries.length ? (
+        entries.map((e) => (
+          <div className="earnings-entry" key={e.id}>
+            <div>
+              <strong>{e.company || "Trabalho independente"}</strong>
+              <p className="subtle">
+                {dateLabel(e.date)} · {e.hours} h × {money(e.rate)}
+              </p>
+            </div>
+            <strong>{money(e.hours * e.rate)}</strong>
+            <button
+              className="quiet"
+              aria-label={`Eliminar registo de ${e.date}`}
+              onClick={async () => {
+                if (!window.confirm("Eliminar este registo pessoal?")) return;
+                try {
+                  await deleteWorkEntry(user.uid, e.id);
+                  await load();
+                } catch {
+                  setError("Não foi possível eliminar o registo.");
+                }
+              }}
+            >
+              ×
+            </button>
+          </div>
+        ))
+      ) : (
+        <div className="compact-empty">
+          <h3>Ainda sem registos</h3>
+          <p className="subtle">
+            Regista aqui os trabalhos que fizeste fora da GlobalOps.
+          </p>
+        </div>
+      )}
+    </>
   );
 }

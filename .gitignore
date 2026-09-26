@@ -4,3 +4,11 @@ dist/
 .env.local
 .firebase/
 .DS_Store
+
+*-debug.log
+*-debug.*.log
+test-results/
+playwright-report/
+
+# Chaves de contas de serviço (nunca no repo)
+*-key.json

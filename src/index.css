@@ -20,19 +20,61 @@
   --text-5: #7B838B;   /* placeholders, nota de rodapé */
 
   /* plataforma */
-  --gold:      #F0C96A;
+  --gold:      #F0C96A;   /* destaque: texto, ligações, botão principal */
   --gold-deep: #C89A2E;
+  --gold-fill: #F0C96A;   /* pormenores dourados (pontos, selos) nos dois modos */
+  --on-gold:   #0A0A0B;   /* texto em cima do botão principal */
   --green:     #34D399;
   --danger:    #E11D48;
+  --danger-text: #FF8A9F;
+
+  /* campos e topo da página inicial */
+  --input-border: rgba(255,255,255,.09);
+  --focus-border: rgba(255,255,255,.28);
+  --hero-1: #1C1E22;
+  --hero-2: #0F1012;
+  --hero-3: #0A0A0B;
 
   --radius:    16px;
   --radius-lg: 22px;
   --radius-sm: 12px;
 }
+/* Modo claro: branco, bordeaux e dourado (a paleta do logo no tema light).
+   O bordeaux faz o papel do dourado como cor de destaque; o dourado fica para pormenores. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg:         #F7F4EF;
+  --card:       #FFFFFF;
+  --card-2:     #FFFFFF;
+  --inset:      rgba(23,19,16,.045);
+  --border:     rgba(23,19,16,.10);
+  --border-mid: rgba(23,19,16,.18);
+
+  --text:   #171310;
+  --text-2: #3A322C;
+  --text-3: #5E554E;
+  --text-4: #625951;
+  --text-5: #6E655D;
+
+  --gold:      #67001D;
+  --gold-deep: #4A0015;
+  --gold-fill: #E9C46A;
+  --on-gold:   #FFFFFF;
+  --green:     #0B7A53;
+  --danger:    #C8102E;
+  --danger-text: #A30D2B;
+
+  --input-border: rgba(23,19,16,.16);
+  --focus-border: rgba(103,0,29,.55);
+  --hero-1: #FFFFFF;
+  --hero-2: #FBF8F3;
+  --hero-3: #F7F4EF;
+}
+:root { color-scheme: dark; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: var(--bg); color: var(--text); font-family: 'Public Sans', system-ui, sans-serif; font-size: 14px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
-input, textarea, select { background: var(--inset); border: 1px solid rgba(255,255,255,.09); border-radius: var(--radius-sm); color: var(--text); font: inherit; padding: 13px 14px; width: 100%; outline: none; }
-input:focus, textarea:focus, select:focus { border-color: rgba(255,255,255,.28); }
+input, textarea, select { background: var(--inset); border: 1px solid var(--input-border); border-radius: var(--radius-sm); color: var(--text); font: inherit; padding: 13px 14px; width: 100%; outline: none; }
+input:focus, textarea:focus, select:focus { border-color: var(--focus-border); }
 input::placeholder, textarea::placeholder { color: var(--text-5); }
 button { cursor: pointer; font: inherit; transition: all .15s ease; }
 button:active { transform: scale(.98); }

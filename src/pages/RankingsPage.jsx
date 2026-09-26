@@ -1,9 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../App';
-import { listAllValidations } from '../services/workService';
+import { listValidationsFor } from '../services/workService';
 import { listPublicProfiles } from '../services/profileService';
 import { scoreOf } from '../ui';
+
+// Guardado durante a sessão: voltar ao ranking não repete as leituras de todos os perfis.
+let cache = null;
+const CACHE_MS = 10 * 60000;
 
 export default function RankingsPage() {
   const { user } = useAuth();
@@ -13,7 +17,17 @@ export default function RankingsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const [vals, pubs] = await Promise.all([listAllValidations(), listPublicProfiles()]);
+        if (!cache || Date.now() - cache.at > CACHE_MS) {
+          const pubs = await listPublicProfiles();
+          const vals = [];
+          // Small batches bound concurrent reads; a profile may become private meanwhile.
+          for (let i = 0; i < pubs.length; i += 10) {
+            const batch = await Promise.all(pubs.slice(i, i + 10).map(p => listValidationsFor(p.id).catch(() => [])));
+            vals.push(...batch.flat());
+          }
+          cache = { at: Date.now(), pubs, vals };
+        }
+        const { pubs, vals } = cache;
         const pubIds = new Map(pubs.map(p => [p.id, p]));
         const agg = {};
         vals.forEach(v => {
@@ -43,7 +57,7 @@ export default function RankingsPage() {
         rows.length === 0 ? <p style={{ color: 'var(--text-3)', fontSize: 13 }}>Ainda sem validações — o ranking nasce quando as empresas validarem os primeiros trabalhos.</p> :
         <>
           {rows.map((r, i) => (
-            <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 14, background: i < 3 ? 'var(--card)' : 'transparent', border: `1px solid ${i < 3 ? 'rgba(240,201,106,.28)' : 'var(--border)'}`, borderRadius: 14, padding: '13px 16px', marginBottom: 8 }}>
+            <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 14, background: i < 3 ? 'var(--card)' : 'transparent', border: `1px solid ${i < 3 ? 'color-mix(in srgb, var(--gold) 28%, transparent)' : 'var(--border)'}`, borderRadius: 14, padding: '13px 16px', marginBottom: 8 }}>
               <span style={{ font: `400 ${i < 3 ? 20 : 14}px/1 'Public Sans', sans-serif`, minWidth: 34, color: 'var(--text-3)', flex: 'none' }}>{medal(i)}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ font: "700 14px/1.2 'Public Sans', sans-serif" }}>{r.name}{r.id === user?.uid && <span style={{ font: "400 12px/1.2 'Public Sans', sans-serif", color: 'var(--text-3)' }}> — tu</span>}</div>
@@ -56,7 +70,7 @@ export default function RankingsPage() {
             </div>
           ))}
           {me && me.pos > 50 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.16)', borderRadius: 14, padding: '13px 16px', marginTop: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'color-mix(in srgb, var(--text) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--text) 16%, transparent)', borderRadius: 14, padding: '13px 16px', marginTop: 14 }}>
               <span style={{ font: "400 14px/1 'Public Sans', sans-serif", minWidth: 34, flex: 'none' }}>{me.pos}.</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ font: "700 14px/1.2 'Public Sans', sans-serif" }}>{me.name} <span style={{ font: "400 12px/1.2 'Public Sans', sans-serif", color: 'var(--text-3)' }}>— tu</span></div>

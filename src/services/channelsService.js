@@ -1,4 +1,4 @@
-import { collection, doc, setDoc, addDoc, getDocs, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { collection, doc, getDoc, setDoc, addDoc, getDocs, query, orderBy, limit, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase';
 
 // Canais de tema fixos — criados de forma preguiçosa (id determinístico)
@@ -7,8 +7,11 @@ export const TOPIC_CHANNELS = [
   ['bar-e-mesa', '# bar e mesa'], ['montagens', '# montagens'], ['ultima-hora', '# última hora'],
 ];
 
-export const ensureTopicChannel = (slug, name) =>
-  setDoc(doc(db, 'channels', `t-${slug}`), { type: 'topic', name, createdAt: new Date().toISOString() }, { merge: true });
+// As regras só permitem criar; um canal existente nunca é reescrito.
+export async function ensureTopicChannel(slug, name) {
+  const ref = doc(db, 'channels', `t-${slug}`);
+  if (!(await getDoc(ref)).exists()) await setDoc(ref, { type: 'topic', name, createdAt: serverTimestamp() });
+}
 
 // Canal da empresa: id determinístico c-{uid} — só a própria publica
 export const ensureCompanyChannel = (uid, companyName) =>
@@ -25,4 +28,4 @@ export const subscribePosts = (channelId, cb) =>
     snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() })).reverse()), () => cb([]));
 
 export const sendPost = (channelId, data) =>
-  addDoc(collection(db, 'channels', channelId, 'posts'), { ...data, createdAt: new Date().toISOString() });
+  addDoc(collection(db, 'channels', channelId, 'posts'), { ...data, createdAt: serverTimestamp() });

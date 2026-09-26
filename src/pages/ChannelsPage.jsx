@@ -69,7 +69,7 @@ export default function ChannelsPage() {
               <div key={p.id}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
                   <span style={{ font: "700 13px/1 'Public Sans', sans-serif", color: p.authorKind === 'company' ? 'var(--gold)' : 'var(--text)' }}>{p.authorName}</span>
-                  <span style={{ font: `400 10px/1 ${MONO}`, color: 'var(--text-4)' }}>{p.createdAt ? new Date(p.createdAt).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                  <span style={{ font: `400 10px/1 ${MONO}`, color: 'var(--text-4)' }}>{p.createdAt ? (p.createdAt.toDate?.() ?? new Date(p.createdAt)).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''}</span>
                 </div>
                 <div style={{ font: "400 13px/1.55 'Public Sans', sans-serif", color: 'var(--text-2)', marginTop: 5, whiteSpace: 'pre-wrap' }}>{p.text}</div>
               </div>
@@ -81,7 +81,7 @@ export default function ChannelsPage() {
               <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()}
                 placeholder={`Mensagem para ${cur?.name || 'o canal'}…`} style={{ flex: 1, borderRadius: 12 }} />
               <button onClick={send} disabled={!text.trim()}
-                style={{ font: "700 13px/1 'Public Sans', sans-serif", color: '#0A0A0B', background: 'var(--text)', border: 'none', borderRadius: 12, padding: '14px 22px', opacity: text.trim() ? 1 : 0.5 }}>Enviar</button>
+                style={{ font: "700 13px/1 'Public Sans', sans-serif", color: 'var(--bg)', background: 'var(--text)', border: 'none', borderRadius: 12, padding: '14px 22px', opacity: text.trim() ? 1 : 0.5 }}>Enviar</button>
             </div>
           ) : (
             <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', fontSize: 13, color: 'var(--text-4)' }}>

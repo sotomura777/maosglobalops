@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
+import { safeNext } from '../marketplace/model';
 import { useAuth } from '../App';
+import GlobalOpsLogo from '../brand/Logo';
 import { signUpWorker } from '../services/authService';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  useEffect(() => { if (user) navigate('/app', { replace: true }); }, [user, navigate]);
+  const { user, profile, loading } = useAuth();
+  const next = safeNext(useSearchParams()[0].get('next'));
+  useEffect(() => { if (user && profile && !loading) navigate(next, { replace: true }); }, [user, profile, loading, navigate, next]);
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState('');
@@ -31,8 +34,9 @@ export default function RegisterPage() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <form onSubmit={submit} style={{ width: '100%', maxWidth: 400, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <Link to="/" aria-label="MaosGlobalOps, página inicial" style={{ alignSelf: 'flex-start', marginBottom: 8 }}><GlobalOpsLogo variant="symbol" height={56} /></Link>
         <h1 style={{ fontSize: 26, fontWeight: 800 }}>Criar perfil de trabalhador</h1>
-        {error && <div style={{ background: 'rgba(225,29,72,0.1)', border: '1px solid rgba(225,29,72,0.35)', borderRadius: 'var(--radius)', color: 'var(--danger)', padding: '10px 14px', fontSize: 13 }}>{error}</div>}
+        {error && <div style={{ background: 'color-mix(in srgb, var(--danger) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--danger) 35%, transparent)', borderRadius: 'var(--radius)', color: 'var(--danger)', padding: '10px 14px', fontSize: 13 }}>{error}</div>}
         <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, color: 'var(--text-3)' }}>Nome
           <input value={form.name} onChange={set('name')} autoComplete="name" /></label>
         <label style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, color: 'var(--text-3)' }}>Email
@@ -41,9 +45,9 @@ export default function RegisterPage() {
           <input type="password" value={form.password} onChange={set('password')} autoComplete="new-password" /></label>
         <label style={{ display: 'flex', gap: 8, fontSize: 12, color: 'var(--text-3)', cursor: 'pointer', alignItems: 'flex-start' }}>
           <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)} style={{ width: 'auto', marginTop: 2 }} />
-          <span>Aceito o tratamento dos meus dados para criar e gerir o meu perfil profissional (RGPD).</span>
+          <span>Aceito os <Link to="/termos" target="_blank">termos</Link> e o tratamento dos meus dados para criar e gerir o meu perfil profissional, como descrito na <Link to="/privacidade" target="_blank">política de privacidade</Link>.</span>
         </label>
-        <button type="submit" disabled={saving} style={{ background: 'var(--text)', color: '#0A0A0B', fontWeight: 700, border: 'none', borderRadius: 99, padding: '15px 18px', opacity: saving ? 0.6 : 1 }}>
+        <button type="submit" disabled={saving} style={{ background: 'var(--text)', color: 'var(--bg)', fontWeight: 700, border: 'none', borderRadius: 99, padding: '15px 18px', opacity: saving ? 0.6 : 1 }}>
           {saving ? 'A criar…' : 'Criar perfil'}
         </button>
         <p style={{ fontSize: 13, color: 'var(--text-3)', textAlign: 'center' }}>Já tens conta? <Link to="/entrar" style={{ color: 'var(--gold)' }}>Entrar</Link></p>
