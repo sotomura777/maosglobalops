@@ -58,6 +58,8 @@ const RESEND_API_KEY = defineSecret("RESEND_API_KEY");
 // Remetente e endereço da app: functions/.env.maosglobalops (MAIL_FROM=..., APP_URL=...).
 const MAIL_FROM = process.env.MAIL_FROM || "GlobalOps <avisos@example.com>";
 const APP_URL = process.env.APP_URL || "https://maosglobalops.web.app";
+// Só se envia para emails confirmados no login.
+const emailVerified = async (uid) => (await getAuth().getUser(uid)).emailVerified === true;
 // Nos emuladores nunca sai nenhum email: fica só o registo em modo ensaio.
 const sender = () =>
   resendSender(
@@ -79,7 +81,7 @@ export const engagementMail = onDocumentWritten(
       APP_URL,
     );
     // O id do evento é estável entre repetições, por isso o mesmo aviso não sai duas vezes.
-    if (notice) await deliver(getFirestore(), `evt-${event.id}`, notice, sender());
+    if (notice) await deliver(getFirestore(), `evt-${event.id}`, notice, sender(), emailVerified);
   },
 );
 // Médias de mercado para "Horas e ganhos", recalculadas de madrugada.
@@ -98,7 +100,8 @@ export const invitationMail = onDocumentCreated(
   },
   async (event) => {
     const inv = event.data?.data();
-    if (inv) await deliver(getFirestore(), `inv-${event.id}`, invitationNotice(inv, APP_URL), sender());
+    if (inv)
+      await deliver(getFirestore(), `inv-${event.id}`, invitationNotice(inv, APP_URL), sender(), emailVerified);
   },
 );
 export const shiftReminders = onSchedule(
@@ -109,6 +112,6 @@ export const shiftReminders = onSchedule(
     secrets: [RESEND_API_KEY],
   },
   async () => {
-    await sendReminders(getFirestore(), sender(), Date.now(), APP_URL);
+    await sendReminders(getFirestore(), sender(), Date.now(), APP_URL, emailVerified);
   },
 );

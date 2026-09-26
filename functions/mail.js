@@ -138,7 +138,9 @@ function message(lines, url) {
 
 // Envia um aviso uma única vez. `send` recebe (email, subject, text, key) e devolve
 // "sent" ou "dry_run"; o endereço de email nunca é guardado no registo.
-export async function deliver(db, logId, notice, send) {
+// `isVerified(uid)` confirma no login que o email foi verificado: sem isso, qualquer pessoa
+// podia registar o email de outra e usar os convites para lhe enviar texto seu.
+export async function deliver(db, logId, notice, send, isVerified) {
   const logRef = db.doc(`mailLog/${logId}`);
   try {
     await logRef.create({
@@ -155,6 +157,7 @@ export async function deliver(db, logId, notice, send) {
   let status;
   if (!p?.email || p.suspended === true) status = "skipped";
   else if (p.emailNotifications === false) status = "opted_out";
+  else if (!(await isVerified(notice.uid).catch(() => false))) status = "unverified";
   else {
     try {
       status = await send(p.email, notice.subject, notice.text, logId);
@@ -185,7 +188,7 @@ export function resendSender(apiKey, from) {
   };
 }
 
-export async function sendReminders(db, send, now, appUrl) {
+export async function sendReminders(db, send, now, appUrl, isVerified) {
   // Corre às 18:00: apanha os trabalhos confirmados que começam entre 6 e 30 horas depois.
   const snap = await db
     .collection("engagements")
@@ -195,7 +198,7 @@ export async function sendReminders(db, send, now, appUrl) {
     .get();
   let sent = 0;
   for (const d of snap.docs) {
-    const r = await deliver(db, `reminder-${d.id}`, reminderNotice(d.data(), d.id, appUrl), send);
+    const r = await deliver(db, `reminder-${d.id}`, reminderNotice(d.data(), d.id, appUrl), send, isVerified);
     if (r !== "duplicate") sent++;
   }
   return sent;
