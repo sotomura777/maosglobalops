@@ -34,6 +34,7 @@ import { CATEGORIES, DISTRICTS } from "../constants";
 import { CompanyMark } from "../ui";
 import { Heading, Empty, ErrorBox, Field, Icon } from "./Layout";
 import { ReportButton } from "./Report";
+import { FEATURES } from "../features";
 export function JobCard({ job }) {
   const { user, profile } = useAuth();
   const { saved, applications } = useMarket();
@@ -563,7 +564,7 @@ export function JobDetails() {
               A candidatura partilha o teu nome. Se o teu perfil estiver
               público, a empresa também pode consultá-lo.
             </p>
-            {companyApp && (
+            {FEATURES.companyApps && companyApp && (
               <p className="notice" role="note">
                 A {job.companyName} gere os trabalhos na app{" "}
                 <strong>{companyApp.name}</strong>. Se fores aceite, a empresa

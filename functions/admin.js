@@ -1,5 +1,6 @@
 import { AggregateField, FieldValue, Timestamp } from "firebase-admin/firestore";
 import { fail, text, id } from "./marketplace.js";
+import { refreshRanking } from "./ranking.js";
 const STATUSES = [
   "pending",
   "accepted",
@@ -100,6 +101,7 @@ export function createAdmin(db, auth, clock = Date.now) {
         },
       };
     }
+    if (operation === "refreshRanking") return refreshRanking(db, clock());
     if (operation === "listDisputes") {
       const status = data.status === "resolved" ? "resolved" : "open";
       const snap = await db.collection("disputes").where("status", "==", status).limit(100).get();

@@ -4,6 +4,7 @@ import GlobalOpsLogo, { Wordmark } from '../brand/Logo';
 import { GlobeGrid } from '../brand/GlobalOpsLogo';
 import { useTheme } from '../theme';
 import { ThemeToggle } from '../marketplace/Layout';
+import { FEATURES } from '../features';
 
 const goldText = { background: GOLD_GRAD, WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' };
 
@@ -13,6 +14,12 @@ const STEPS = [
   ['03', 'Constrói o teu historial', 'Concluam o trabalho e partilhem uma avaliação. A experiência acompanha-te na próxima oportunidade.'],
 ];
 
+// O que a GlobalOps dá às empresas (enquanto as apps próprias estão escondidas).
+const FOR_COMPANIES = [
+  ['Perfis com histórico verificado', 'Trabalhos concluídos, avaliações e fiabilidade de cada profissional.'],
+  ['Favoritos e convites', 'Guarda quem trabalhou bem e convida primeiro para a próxima oferta.'],
+  ['Ofertas privadas', 'Publica só para quem convidares, quando precisas de alguém de confiança.'],
+];
 const COMPANIES = [
   ['MAOS', '#E11D48', 'Eventos e restauração · Porto', 'App dedicada'],
   ['Btrust', '#EC4899', 'Staff para eventos', 'App dedicada'],
@@ -94,7 +101,13 @@ export default function LandingPage() {
             <Link to="/registar-empresa" style={{ ...S.btn, display: 'inline-block', textDecoration: 'none', padding: '16px 26px', marginTop: 26 }}>Registar empresa</Link>
           </div>
           <div style={{ flex: '1 1 320px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {COMPANIES.map(([name, color, sub, badge]) => (
+            {!FEATURES.companyApps && FOR_COMPANIES.map(([title, sub]) => (
+              <div key={title} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: '17px 20px' }}>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>{title}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 6, lineHeight: 1.5 }}>{sub}</div>
+              </div>
+            ))}
+            {FEATURES.companyApps && COMPANIES.map(([name, color, sub, badge]) => (
               <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 16, padding: '17px 20px' }}>
                 <CompanyMark name={name} color={color} />
                 <div style={{ flex: 1, minWidth: 0 }}>

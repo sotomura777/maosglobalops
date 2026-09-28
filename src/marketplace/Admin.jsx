@@ -5,6 +5,7 @@ import { adminApi } from "./service";
 import { STATUS } from "./model";
 import { Empty, ErrorBox, Field, Heading } from "./Layout";
 import { REPORT_REASONS } from "./Report";
+import { FEATURES } from "../features";
 
 const TABS = [
   ["stats", "Estatísticas"],
@@ -127,6 +128,7 @@ function Stats() {
         <button className="btn secondary" disabled={loading} onClick={reload}>
           {loading ? "A atualizar…" : "Atualizar números"}
         </button>
+        <RefreshRanking />
       </div>
     </div>
   );
@@ -233,7 +235,7 @@ function Companies() {
                 placeholder="Ex.: NIF 500000000 confirmado no portal"
               />
             </Field>
-            {c.verification === "verified" && (
+            {FEATURES.companyApps && c.verification === "verified" && (
               <div className="stack">
                 <div className="grid-two">
                   <Field label="App própria (nome)">
@@ -776,5 +778,27 @@ function DisputeCard({ d, onDone }) {
         </>
       )}
     </div>
+  );
+}
+
+// O ranking recalcula-se todas as noites; aqui força-se já (por exemplo depois de validar uma empresa).
+function RefreshRanking() {
+  const [state, setState] = useState("");
+  return (
+    <button
+      className="btn secondary"
+      disabled={state === "busy"}
+      onClick={async () => {
+        setState("busy");
+        try {
+          const { total } = await adminApi("refreshRanking");
+          setState(`Ranking recalculado: ${total} ${total === 1 ? "profissional" : "profissionais"}.`);
+        } catch (e) {
+          setState(e.message);
+        }
+      }}
+    >
+      {state === "busy" ? "A recalcular…" : state || "Recalcular ranking agora"}
+    </button>
   );
 }

@@ -288,3 +288,5 @@ export const watchInvitations = (uid, cb, err) =>
     err,
   );
 export const disputeMark = (id, text) => contract({ operation: "dispute", id, text });
+export const getRanking = async () =>
+  (await getDoc(doc(db, "rankings", "current"))).data() || { entries: [] };

@@ -9,6 +9,7 @@ import { createMarketplace } from "./marketplace.js";
 import { createAdmin } from "./admin.js";
 import { createAccount } from "./account.js";
 import { refreshMarketStats } from "./stats.js";
+import { refreshRanking } from "./ranking.js";
 import {
   deliver,
   engagementNotice,
@@ -102,6 +103,13 @@ export const invitationMail = onDocumentCreated(
     const inv = event.data?.data();
     if (inv)
       await deliver(getFirestore(), `inv-${event.id}`, invitationNotice(inv, APP_URL), sender(), emailVerified);
+  },
+);
+// Ranking recalculado de madrugada (e à mão no admin).
+export const ranking = onSchedule(
+  { schedule: "30 3 * * *", timeZone: "Europe/Lisbon", region: "europe-west1" },
+  async () => {
+    await refreshRanking(getFirestore(), Date.now());
   },
 );
 export const shiftReminders = onSchedule(

@@ -1,89 +1,100 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../App';
-import { listValidationsFor } from '../services/workService';
-import { listPublicProfiles } from '../services/profileService';
-import { scoreOf } from '../ui';
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../App";
+import { getRanking, getReputation } from "../marketplace/service";
+import { Heading, Empty, ErrorBox } from "../marketplace/Layout";
+import { timestampMillis } from "../marketplace/model";
 
-// Guardado durante a sessão: voltar ao ranking não repete as leituras de todos os perfis.
-let cache = null;
-const CACHE_MS = 10 * 60000;
-
+// Ranking da GlobalOps, calculado no servidor todas as noites (functions/ranking.js).
 export default function RankingsPage() {
-  const { user } = useAuth();
-  const [rows, setRows] = useState(null);
-  const [me, setMe] = useState(null); // a minha linha, mesmo fora do top 50
-
+  const { user, profile } = useAuth();
+  const [ranking, setRanking] = useState(null);
+  const [mine, setMine] = useState(null);
+  const [error, setError] = useState("");
   useEffect(() => {
-    (async () => {
-      try {
-        if (!cache || Date.now() - cache.at > CACHE_MS) {
-          const pubs = await listPublicProfiles();
-          const vals = [];
-          // Small batches bound concurrent reads; a profile may become private meanwhile.
-          for (let i = 0; i < pubs.length; i += 10) {
-            const batch = await Promise.all(pubs.slice(i, i + 10).map(p => listValidationsFor(p.id).catch(() => [])));
-            vals.push(...batch.flat());
-          }
-          cache = { at: Date.now(), pubs, vals };
-        }
-        const { pubs, vals } = cache;
-        const pubIds = new Map(pubs.map(p => [p.id, p]));
-        const agg = {};
-        vals.forEach(v => {
-          if (!pubIds.has(v.workerId)) return; // só perfis públicos entram no ranking
-          agg[v.workerId] = agg[v.workerId] || { count: 0, hours: 0 };
-          agg[v.workerId].count += Number(v.jobs) || 1; // apps oficiais trazem nº de trabalhos
-          agg[v.workerId].hours += Number(v.hours) || 0;
-        });
-        const all = Object.entries(agg)
-          .map(([id, v]) => ({ id, ...pubIds.get(id), vCount: v.count, vHours: v.hours, score: scoreOf(v) }))
-          .sort((a, b) => b.score - a.score);
-        setRows(all.slice(0, 50));
-        const myIdx = all.findIndex(r => r.id === user?.uid);
-        setMe(myIdx >= 0 ? { ...all[myIdx], pos: myIdx + 1 } : null);
-      } catch { setRows([]); }
-    })();
-  }, [user?.uid]);
-
-  const medal = (i) => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
-
+    getRanking()
+      .then(setRanking)
+      .catch(() => setError("Não foi possível carregar o ranking."));
+    getReputation(user.uid)
+      .then((r) => setMine(r.rank || null))
+      .catch(() => {});
+  }, [user.uid]);
+  const entries = ranking?.entries || [];
+  const inTop = entries.some((e) => e.uid === user.uid);
+  const updated = timestampMillis(ranking?.updatedAt);
   return (
-    <div style={{ minHeight: '100vh', padding: 24, maxWidth: 680, margin: '0 auto' }}>
-      <header style={{ marginBottom: 22 }}><Link to="/app" style={{ color: 'var(--text-2)', textDecoration: 'none', fontSize: 13, fontWeight: 500 }}>← Início</Link></header>
-      <h1 style={{ font: "800 24px/1 'Public Sans', sans-serif", letterSpacing: '-.035em' }}>Ranking nacional</h1>
-      <p style={{ font: "400 13px/1.5 'Public Sans', sans-serif", color: 'var(--text-3)', margin: '8px 0 20px' }}>Só conta trabalho validado por empresas — não há atalhos.</p>
-      {rows === null ? <p style={{ color: 'var(--text-3)', fontSize: 13 }}>A carregar…</p> :
-        rows.length === 0 ? <p style={{ color: 'var(--text-3)', fontSize: 13 }}>Ainda sem validações — o ranking nasce quando as empresas validarem os primeiros trabalhos.</p> :
-        <>
-          {rows.map((r, i) => (
-            <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 14, background: i < 3 ? 'var(--card)' : 'transparent', border: `1px solid ${i < 3 ? 'color-mix(in srgb, var(--gold) 28%, transparent)' : 'var(--border)'}`, borderRadius: 14, padding: '13px 16px', marginBottom: 8 }}>
-              <span style={{ font: `400 ${i < 3 ? 20 : 14}px/1 'Public Sans', sans-serif`, minWidth: 34, color: 'var(--text-3)', flex: 'none' }}>{medal(i)}</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ font: "700 14px/1.2 'Public Sans', sans-serif" }}>{r.name}{r.id === user?.uid && <span style={{ font: "400 12px/1.2 'Public Sans', sans-serif", color: 'var(--text-3)' }}> — tu</span>}</div>
-                <div style={{ font: "400 12px/1.3 'Public Sans', sans-serif", color: 'var(--text-3)', marginTop: 4 }}>{r.headline || r.district || '—'}</div>
+    <>
+      <Heading eyebrow="GlobalOps" title="Ranking">
+        Quem mais trabalha, e bem, na GlobalOps. Só conta trabalho feito ou
+        confirmado aqui, com empresas validadas.
+      </Heading>
+      <ErrorBox>{error}</ErrorBox>
+      {ranking === null && !error ? (
+        <p className="subtle">A carregar…</p>
+      ) : entries.length === 0 ? (
+        <Empty title="O ranking ainda está vazio">
+          Aparece quando as empresas validadas concluírem os primeiros
+          trabalhos com profissionais de perfil público.
+        </Empty>
+      ) : (
+        <ol className="ranking">
+          {entries.map((e, i) => (
+            <li key={e.uid} className={`ranking-row ${i < 3 ? "top" : ""} ${e.uid === user.uid ? "me" : ""}`}>
+              <span className="ranking-pos">{i + 1}</span>
+              <div className="ranking-who">
+                <Link to={`/app/profissionais/${e.uid}`}>{e.name}</Link>
+                {e.uid === user.uid && <span className="subtle"> — tu</span>}
+                <p className="subtle">
+                  {[e.headline, e.district].filter(Boolean).join(" · ") || "Profissional"}
+                </p>
               </div>
-              <div style={{ textAlign: 'right', flex: 'none' }}>
-                <div style={{ font: "800 15px/1 'Public Sans', sans-serif", color: 'var(--gold)' }}>{r.score.toLocaleString('pt-PT')} pts</div>
-                <div style={{ font: "400 11px/1 'Public Sans', sans-serif", color: 'var(--text-4)', marginTop: 5 }}>{r.vCount} trabalhos validados · {Math.round(r.vHours)}h</div>
+              <div className="ranking-score">
+                <strong>{e.score.toLocaleString("pt-PT")} pts</strong>
+                <small>
+                  {e.jobs} {e.jobs === 1 ? "trabalho" : "trabalhos"} · {Math.round(e.hours)} h
+                  {e.rating ? ` · ★ ${e.rating.toLocaleString("pt-PT")}` : ""}
+                </small>
               </div>
-            </div>
+            </li>
           ))}
-          {me && me.pos > 50 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'color-mix(in srgb, var(--text) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--text) 16%, transparent)', borderRadius: 14, padding: '13px 16px', marginTop: 14 }}>
-              <span style={{ font: "400 14px/1 'Public Sans', sans-serif", minWidth: 34, flex: 'none' }}>{me.pos}.</span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ font: "700 14px/1.2 'Public Sans', sans-serif" }}>{me.name} <span style={{ font: "400 12px/1.2 'Public Sans', sans-serif", color: 'var(--text-3)' }}>— tu</span></div>
-                <div style={{ font: "400 12px/1.3 'Public Sans', sans-serif", color: 'var(--text-3)', marginTop: 4 }}>{me.headline || me.district || '—'}</div>
-              </div>
-              <div style={{ textAlign: 'right', flex: 'none' }}>
-                <div style={{ font: "800 15px/1 'Public Sans', sans-serif" }}>{me.score.toLocaleString('pt-PT')} pts</div>
-                <div style={{ font: "400 11px/1 'Public Sans', sans-serif", color: 'var(--text-4)', marginTop: 5 }}>{me.vCount} trabalhos validados · {Math.round(me.vHours)}h</div>
-              </div>
-            </div>
-          )}
-          <p style={{ font: "400 11px/1.5 'Public Sans', sans-serif", color: 'var(--text-5)', marginTop: 16 }}>25 pontos por validação + 2 por hora. Só perfis públicos entram no ranking.</p>
-        </>}
-    </div>
+        </ol>
+      )}
+      {mine && !inTop && (
+        <div className="ranking-row me" style={{ marginTop: 14 }}>
+          <span className="ranking-pos">{mine.position}</span>
+          <div className="ranking-who">
+            <strong>A tua posição</strong>
+            <p className="subtle">em {mine.of} profissionais</p>
+          </div>
+          <div className="ranking-score">
+            <strong>{mine.score.toLocaleString("pt-PT")} pts</strong>
+          </div>
+        </div>
+      )}
+      {!mine && ranking !== null && profile?.kind === "worker" && (
+        <p className="subtle" style={{ marginTop: 14 }}>
+          Ainda não estás no ranking. Entra quando concluíres um trabalho com uma
+          empresa validada e tiveres o perfil público.
+        </p>
+      )}
+      <div className="panel" style={{ marginTop: 20 }}>
+        <h3 className="section-title">Como é calculado</h3>
+        <ul className="stack subtle" style={{ paddingLeft: 18, listStyle: "disc" }}>
+          <li>20 pontos por cada trabalho verificado e 1 ponto por cada hora.</li>
+          <li>
+            Contam os trabalhos concluídos na GlobalOps e os trabalhos passados
+            confirmados, sempre com empresas validadas.
+          </li>
+          <li>Cada falta tira 15% e cada cancelamento a menos de 24 horas tira 5%.</li>
+          <li>Em caso de empate, ganha a melhor avaliação média.</li>
+          <li>Só entram perfis públicos.</li>
+        </ul>
+        {updated > 0 && (
+          <p className="subtle" style={{ marginTop: 10 }}>
+            Atualizado a {new Date(updated).toLocaleString("pt-PT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}.
+          </p>
+        )}
+      </div>
+    </>
   );
 }

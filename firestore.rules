@@ -101,6 +101,8 @@ service cloud.firestore {
     match /invitations/{id} {
       allow read: if signed() && (resource.data.workerId == request.auth.uid || resource.data.companyId == request.auth.uid);
     }
+    // Ranking calculado no servidor.
+    match /rankings/{id} { allow read: if signed(); }
     // Médias de €/h do mercado (calculadas no servidor a partir das ofertas).
     match /marketStats/{id} { allow read: if signed(); }
     // Contestações de faltas e atrasos: as duas partes leem, só o servidor escreve.

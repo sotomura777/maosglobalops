@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { FEATURES } from "../src/features.js";
 const pass = "TesteSeguro123!";
 async function verifyEmail(page, email) {
   await page.goto("/app/conta");
@@ -284,8 +285,10 @@ test("empresa e profissional: publicar, pesquisar, guardar, contratar, conversar
   );
   expect(seeded.ok()).toBe(true);
   await worker.goto(jobPath);
-  // Before applying, the person is told a staff account will be created if accepted.
-  await expect(worker.getByRole("note")).toContainText("MaosOps");
+  // Before applying, the person is told a staff account will be created if accepted
+  // (only while company apps are part of the product; otherwise nothing is shown).
+  if (FEATURES.companyApps) await expect(worker.getByRole("note")).toContainText("MaosOps");
+  else await expect(worker.getByRole("note")).toHaveCount(0);
   await worker
     .getByLabel("Mensagem (opcional)")
     .fill("Tenho experiência em galas e disponibilidade para este horário.");
@@ -316,6 +319,7 @@ test("empresa e profissional: publicar, pesquisar, guardar, contratar, conversar
   await expect(
     company.getByText("A proposta foi enviada.", { exact: false }),
   ).toBeVisible();
+  if (FEATURES.companyApps) {
   // The acceptance is the approval: Aurora now has to create Ana's MaosOps account.
   await company.goto("/app/equipa");
   const staff = company.locator(".panel").filter({ hasText: "Ana Silva" });
@@ -331,6 +335,14 @@ test("empresa e profissional: publicar, pesquisar, guardar, contratar, conversar
     "https://maosops.example",
   );
   await worker.screenshot({ path: testInfo.outputPath("minhas-empresas-mobile.png"), fullPage: true });
+  } else {
+    // Company apps are hidden: no handover screens for the company or the worker.
+    await company.goto("/app");
+    await expect(company.getByRole("link", { name: /Staff para/ })).toHaveCount(0);
+    await worker.goto("/app");
+    await expect(worker.getByRole("heading", { name: "As minhas empresas" })).toHaveCount(0);
+    await company.goto(engagementPath);
+  }
   await worker.goto(engagementPath);
   await worker
     .getByRole("button", { name: "Confirmar trabalho", exact: true })
@@ -669,6 +681,15 @@ test("administração: estatísticas, validação de empresas e suspensão de co
   await page.getByRole("button", { name: /^Validadas/ }).click();
   await expect(aurora.getByText("Validada", { exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("admin-empresas.png"), fullPage: true });
+  // With Aurora validated, Ana's completed job counts for the GlobalOps ranking.
+  await page.goto("/app/admin");
+  await page.getByRole("button", { name: "Recalcular ranking agora" }).click();
+  await expect(page.getByRole("button", { name: /Ranking recalculado/ })).toBeVisible();
+  await page.goto("/app/ranking");
+  await expect(page.locator(".ranking-row").filter({ hasText: "Ana Silva" })).toContainText("pts");
+  await page.screenshot({ path: testInfo.outputPath("ranking.png"), fullPage: true });
+  await page.goto("/app/admin?tab=companies");
+  await page.getByRole("button", { name: /^Validadas/ }).click();
   await aurora.getByRole("link", { name: "Ver perfil público →" }).click();
   await expect(page.getByText("Empresa validada", { exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("empresa-validada.png"), fullPage: true });

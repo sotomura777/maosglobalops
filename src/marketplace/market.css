@@ -1470,3 +1470,58 @@ a.setup-strip:focus-visible strong {
   opacity: 0.35;
   cursor: default;
 }
+.ranking {
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+.ranking-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.ranking-row.top {
+  background: var(--card);
+  border-color: color-mix(in srgb, var(--gold) 30%, transparent);
+}
+.ranking-row.me {
+  border-color: color-mix(in srgb, var(--text) 30%, transparent);
+}
+.ranking-pos {
+  min-width: 28px;
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--text-3);
+}
+.ranking-row.top .ranking-pos {
+  color: var(--gold);
+}
+.ranking-who {
+  flex: 1;
+  min-width: 0;
+}
+.ranking-who a {
+  font-weight: 700;
+  color: var(--text);
+  text-decoration: none;
+}
+.ranking-who p {
+  font-size: 12px;
+  margin-top: 3px;
+}
+.ranking-score {
+  text-align: right;
+  flex: none;
+  display: grid;
+  gap: 4px;
+}
+.ranking-score strong {
+  color: var(--gold);
+}
+.ranking-score small {
+  font-size: 11px;
+  color: var(--text-3);
+}

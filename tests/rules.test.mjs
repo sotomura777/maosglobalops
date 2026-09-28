@@ -477,6 +477,12 @@ test("disputes are read by the two parties only and written by the server", asyn
   await assertFails(setDoc(doc(worker, "disputes", "dy"), { workerId: "worker", status: "open" }));
   await assertFails(updateDoc(doc(worker, "disputes", "dx"), { status: "resolved" }));
 });
+test("the ranking is readable by signed-in users only and written by the server", async () => {
+  await seed("rankings", "current", { entries: [], total: 0 });
+  await assertSucceeds(getDoc(doc(worker, "rankings", "current")));
+  await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), "rankings", "current")));
+  await assertFails(setDoc(doc(worker, "rankings", "current"), { entries: [{ uid: "worker", score: 9999 }] }));
+});
 test("handover requests are visible only to the company and the person", async () => {
   await seed("handovers", "company_worker", {
     companyId: "company",

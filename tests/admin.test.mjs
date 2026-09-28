@@ -237,3 +237,19 @@ test("the administration settles a disputed mark; overturning removes it from th
   assert.equal((await db.doc("disputes/d-ns").get()).data().decision, "overturn");
   assert.deepEqual(await asAdmin({ operation: "listDisputes", status: "open" }), []);
 });
+
+test("the ranking counts GlobalOps work with validated companies and records each position", async () => {
+  await rejected(admin({ auth: { uid: "ana", token: {} }, data: { operation: "refreshRanking" } }), /administração/);
+  await db.doc("publicProfiles/ana").set({ kind: "worker", name: "Ana", public: true });
+  await db.doc("workHistory/rk1").set({ workerId: "ana", companyId: "acme", source: "app", hours: 6, verified: true });
+  await db.doc("workHistory/rk2").set({ workerId: "ana", companyId: "nobody", source: "app", hours: 50, verified: true });
+  const { total } = await asAdmin({ operation: "refreshRanking" });
+  assert.ok(total >= 1);
+  const current = (await db.doc("rankings/current").get()).data();
+  const ana = current.entries.find((e) => e.uid === "ana");
+  // acme is validated (earlier test): its 8 h confirmed past job plus the 6 h here count;
+  // the 50 h with an unvalidated company don't.
+  assert.equal(ana.hours, 14);
+  assert.equal(ana.jobs, 2);
+  assert.equal((await db.doc("reputations/ana").get()).data().rank.position, current.entries.indexOf(ana) + 1);
+});

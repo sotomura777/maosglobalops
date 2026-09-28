@@ -47,7 +47,9 @@ Lista viva do que falta, atualizada a 25 set 2026. Marca `[x]` quando ficar feit
 - **Telefone:** só é partilhado com a empresa de app própria se a pessoa o tiver preenchido.
 - **Mensagens (L1):** a pré-visualização da última mensagem pode ser falsificada por um dos dois participantes.
 
-## 4. Ligação com a MaosOps e outras apps de empresa (quando decidires mexer)
+## 4. Ligação com a MaosOps e outras apps de empresa (escondida por agora)
+
+Desde 28 set, a ligação às apps das empresas está **escondida** (`src/features.js`, `companyApps: false`) para focar no produto base: as empresas registam-se e usam a GlobalOps. O código e os testes do servidor continuam lá. Para voltar a mostrar, basta pôr `companyApps: true`.
 
 Ver [arquitetura-empresas.md](arquitetura-empresas.md), secção "Contrato".
 - [ ] Criação e remoção automáticas da conta de staff (hoje são manuais, com confirmação na GlobalOps).

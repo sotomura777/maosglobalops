@@ -11,6 +11,7 @@ import {
 } from "./service";
 import { timestampMillis } from "./model";
 import { useAuth } from "../App";
+import { FEATURES } from "../features";
 const Context = createContext(null);
 export const useMarket = () => useContext(Context);
 export function MarketProvider({ children }) {
@@ -57,12 +58,14 @@ export function MarketProvider({ children }) {
       ...(profile.kind === "company"
         ? [watchApprovalRequests(user.uid, setApprovals, () => {})]
         : []),
-      watchHandovers(user.uid, profile.kind === "company", setHandovers, () => {}),
+      ...(FEATURES.companyApps
+        ? [watchHandovers(user.uid, profile.kind === "company", setHandovers, () => {})]
+        : []),
       profile.kind === "company"
         ? watchFavorites(user.uid, setFavorites, () => {})
         : watchInvitations(user.uid, setInvitations, () => {}),
     ];
-    if (profile.kind === "company")
+    if (FEATURES.companyApps && profile.kind === "company")
       getCompanyStatus(user.uid)
         .then((s) => setOwnApp(s.app))
         .catch(() => {});

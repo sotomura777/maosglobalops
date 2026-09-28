@@ -29,6 +29,7 @@ import { CATEGORIES, DISTRICTS, AVAILABILITY, PREFS } from "../constants";
 import { initials } from "../ui";
 import { Heading, Field, Empty, ErrorBox } from "./Layout";
 import { ReportButton } from "./Report";
+import { FEATURES } from "../features";
 export function Directory() {
   const [all, setAll] = useState(null);
   const [error, setError] = useState("");
@@ -444,7 +445,7 @@ export function PublicProfile() {
           ))}
         </div>
       )}
-      {vals.length > 0 && (
+      {FEATURES.companyApps && vals.length > 0 && (
         <div className="panel" style={{ marginTop: 16 }}>
           <h3 className="section-title">Experiência validada</h3>
           {vals.map((v) => (
@@ -1201,7 +1202,7 @@ export function EditProfile() {
               Segurança da conta e confirmação de email
             </Link>
           </p>
-          {!company && (
+          {FEATURES.companyApps && !company && (
             <label className="row subtle">
               <input
                 type="checkbox"
@@ -1212,10 +1213,12 @@ export function EditProfile() {
               meu email verificado
             </label>
           )}
-          <p className="subtle">
-            A associação exige confirmação do email. Desativar impede novas
-            sincronizações; os comprovativos já importados ficam guardados.
-          </p>
+          {FEATURES.companyApps && (
+            <p className="subtle">
+              A associação exige confirmação do email. Desativar impede novas
+              sincronizações; os comprovativos já importados ficam guardados.
+            </p>
+          )}
           <label className="row subtle">
             <input
               type="checkbox"

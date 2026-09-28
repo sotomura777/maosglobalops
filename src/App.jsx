@@ -14,6 +14,7 @@ import LandingPage from "./pages/LandingPage";
 import AccountPage from "./pages/AccountPage";
 import LegalPage from "./pages/LegalPage";
 import GlobalOpsLogo from "./brand/Logo";
+import { FEATURES } from "./features";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import RegisterCompanyPage from "./pages/RegisterCompanyPage";
@@ -167,7 +168,7 @@ const router = createBrowserRouter(
           <Route path="conta" element={<AccountPage />} />
           <Route path="perfil" element={<EditProfile />} />
           <Route path="aprovacoes" element={<Approvals />} />
-          <Route path="equipa" element={<StaffHandover />} />
+          {FEATURES.companyApps && <Route path="equipa" element={<StaffHandover />} />}
           <Route path="admin" element={<AdminPage />} />
           <Route
             path="canais"
@@ -185,14 +186,7 @@ const router = createBrowserRouter(
               </div>
             }
           />
-          <Route
-            path="ranking"
-            element={
-              <div className="legacy-page">
-                <RankingsPage />
-              </div>
-            }
-          />
+          <Route path="ranking" element={<RankingsPage />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
