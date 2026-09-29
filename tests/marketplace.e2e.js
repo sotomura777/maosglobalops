@@ -589,6 +589,35 @@ test("empresa e profissional: publicar, pesquisar, guardar, contratar, conversar
     path: testInfo.outputPath("inicio-mobile.png"),
     fullPage: true,
   });
+  // Public links: a shareable CV for Ana and a public page for Aurora, both opening
+  // without an account, with the company's recommendation and its open offers.
+  for (const [page, name] of [[worker, "ana-silva"], [company, "aurora-eventos"]]) {
+    await page.goto("/app/perfil");
+    await page.getByRole("button", { name: "Gerir visibilidade" }).click();
+    await expect(page.getByLabel("Nome do link")).toHaveValue(name);
+    await page.getByRole("button", { name: "Criar o meu link" }).click();
+    await expect(page.getByRole("link", { name: new RegExp(`/p/${name}$`) })).toBeVisible();
+  }
+  const guestContext = await browser.newContext({ viewport: { width: 1280, height: 900 }, locale: "pt-PT" });
+  const guest = await guestContext.newPage();
+  guest.on("pageerror", (e) => errors.push(e.message));
+  await guest.goto("/p/ana-silva");
+  await expect(guest.getByRole("heading", { name: "Ana Silva" })).toBeVisible();
+  await expect(guest.getByText("— Aurora Eventos · Serviço de mesa · Gala em Lisboa")).toBeVisible();
+  await expect(guest.getByRole("button", { name: "Guardar CV em PDF" })).toBeVisible();
+  await expect(guest.getByText("912345678")).toHaveCount(0);
+  await guest.screenshot({ path: testInfo.outputPath("perfil-publico.png"), fullPage: true });
+  await guest.emulateMedia({ media: "print" });
+  await guest.screenshot({ path: testInfo.outputPath("cv-impressao.png"), fullPage: true });
+  await guest.emulateMedia({ media: "screen" });
+  await guest.goto("/p/aurora-eventos");
+  await expect(guest.getByRole("heading", { name: "Aurora Eventos" })).toBeVisible();
+  await expect(guest.getByRole("heading", { name: "Avaliações de profissionais" })).toBeVisible();
+  // Its offers here are closed or invite-only, so none is listed publicly.
+  await expect(guest.getByText("Jantar privado · só convidados")).toHaveCount(0);
+  await guest.goto("/p/nao-existe");
+  await expect(guest.getByText("Perfil indisponível")).toBeVisible();
+  await guestContext.close();
   // The same pages with real data in light mode.
   await worker.evaluate(() => localStorage.setItem("gop-theme", "light"));
   for (const path of ["/app", engagementPath, "/app/ganhos", "/app/meus-trabalhos"]) {

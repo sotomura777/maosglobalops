@@ -227,13 +227,16 @@ export const watchApprovalRequests = (companyId, cb, err) =>
   );
 export const endorse = (workerId, claimId, decision) =>
   contract({ operation: "endorse", workerId, claimId, decision });
-export const review = (a, uid, rating, text) =>
+// authorName e jobTitle aparecem com a recomendação no perfil (as regras confirmam que são verdadeiros).
+export const review = (a, uid, rating, text, authorName) =>
   setDoc(doc(db, "reviews", `${a.id}_${uid}`), {
     engagementId: a.id,
     authorId: uid,
     subjectId: uid === a.companyId ? a.workerId : a.companyId,
     rating: Number(rating),
     text: text.trim(),
+    ...(authorName ? { authorName } : {}),
+    ...(a.title ? { jobTitle: a.title } : {}),
     createdAt: serverTimestamp(),
   });
 export const adminApi = (operation, data = {}) =>
@@ -290,3 +293,17 @@ export const watchInvitations = (uid, cb, err) =>
 export const disputeMark = (id, text) => contract({ operation: "dispute", id, text });
 export const getRanking = async () =>
   (await getDoc(doc(db, "rankings", "current"))).data() || { entries: [] };
+// Ofertas abertas e públicas de uma empresa (também legíveis sem conta, se a empresa tiver link público).
+export const getOpenJobsOf = async (companyId) =>
+  rows(
+    await getDocs(
+      query(
+        collection(db, "jobs"),
+        where("companyId", "==", companyId),
+        where("visibility", "==", "public"),
+        where("status", "==", "open"),
+      ),
+    ),
+  ).sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+export const resolveHandle = async (slug) =>
+  (await getDoc(doc(db, "handles", slug))).data()?.uid || null;

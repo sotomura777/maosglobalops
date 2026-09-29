@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useParams, useBlocker } from "react-router-dom";
 import { useAuth } from "../App";
-import { listPublicProfiles, updateProfile } from "../services/profileService";
+import {
+  listPublicProfiles,
+  updateProfile,
+  claimHandle,
+  releaseHandle,
+} from "../services/profileService";
 import { listValidationsFor } from "../services/workService";
 import {
   getPublicProfile,
@@ -15,6 +20,7 @@ import {
   getCompanyStatus,
   confirmHandover,
   setFavorite,
+  getOpenJobsOf,
 } from "./service";
 import { useMarket } from "./context";
 import {
@@ -24,6 +30,7 @@ import {
   calendarMonths,
   upcomingDates,
   isFreeOn,
+  slugify,
 } from "./model";
 import { CATEGORIES, DISTRICTS, AVAILABILITY, PREFS } from "../constants";
 import { initials } from "../ui";
@@ -200,9 +207,12 @@ function FavoriteButton({ workerId, workerName }) {
     </button>
   );
 }
-export function PublicProfile() {
-  const { id } = useParams();
+// Também serve o link público (/p/nome): publicView = visto sem conta, sem ações da app.
+export function PublicProfile({ uid, publicView = false }) {
+  const params = useParams();
+  const id = uid || params.id;
   const { user, profile: viewer } = useAuth();
+  const [openJobs, setOpenJobs] = useState([]);
   const [p, setP] = useState(null);
   const [vals, setVals] = useState([]);
   const [reviews, setReviews] = useState([]);
@@ -218,7 +228,7 @@ export function PublicProfile() {
     setError("");
     Promise.all([
       getPublicProfile(id),
-      listValidationsFor(id),
+      listValidationsFor(id).catch(() => []),
       getReviews(id),
       getWorkHistory(id),
       getHistoryClaims(id).catch(() => []),
@@ -226,9 +236,11 @@ export function PublicProfile() {
       getCompanyStatus(id)
         .then((s) => s.verification)
         .catch(() => "pending"),
+      getOpenJobsOf(id).catch(() => []),
     ])
-      .then(([p, v, r, h, c, rp, cs]) => {
+      .then(([p, v, r, h, c, rp, cs, jobs]) => {
         if (active) {
+          setOpenJobs(p?.kind === "company" ? jobs : []);
           setVerification(cs);
           setP(p);
           setVals(v);
@@ -490,11 +502,33 @@ export function PublicProfile() {
           )}
         </div>
       )}
+      {company && openJobs.length > 0 && (
+        <div className="panel" style={{ marginTop: 16 }}>
+          <h3 className="section-title">Ofertas abertas</h3>
+          {openJobs.map((j) => (
+            <Link
+              key={j.id}
+              className="action-row"
+              to={publicView ? `/ofertas/${j.id}` : `/app/trabalhos/${j.id}`}
+            >
+              <div>
+                <strong>{j.title}</strong>
+                <p>
+                  {dateLabel(j.date)} · {j.district}
+                </p>
+              </div>
+              <span className="tag">Ver oferta</span>
+            </Link>
+          ))}
+        </div>
+      )}
       <div className="panel" style={{ marginTop: 16 }}>
-        <h3 className="section-title">Avaliações de trabalhos na GlobalOps</h3>
+        <h3 className="section-title">
+          {company ? "Avaliações de profissionais" : "Recomendações e avaliações"}
+        </h3>
         <p className="subtle">
-          Cada avaliação corresponde a uma contratação concluída e confirmada
-          pelos dois participantes.
+          Cada uma corresponde a um trabalho concluído na GlobalOps e confirmado
+          pelos dois lados.
         </p>
         {reviews.length ? (
           reviews.map((r) => (
@@ -510,6 +544,11 @@ export function PublicProfile() {
                 <span className="tag green">Trabalho concluído</span>
               </div>
               <p>{r.text || "Sem comentário."}</p>
+              {(r.authorName || r.jobTitle) && (
+                <p className="subtle">
+                  — {[r.authorName, r.jobTitle].filter(Boolean).join(" · ")}
+                </p>
+              )}
             </div>
           ))
         ) : (
@@ -518,7 +557,7 @@ export function PublicProfile() {
           </p>
         )}
       </div>
-      {user.uid !== id && (
+      {!publicView && user && user.uid !== id && (
         <div className="report-slot">
           <ReportButton targetType="profile" targetId={id} label="Denunciar este perfil" />
         </div>
@@ -743,6 +782,99 @@ function UnavailableCalendar({ value, onChange }) {
           </button>
         </p>
       )}
+    </div>
+  );
+}
+// Link público do perfil (/p/nome): um currículo que se partilha e abre sem conta.
+function PublicLink() {
+  const { user, profile } = useAuth();
+  const [slug, setSlug] = useState(profile.handle || slugify(profile.name));
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [error, setError] = useState("");
+  const url = profile.handle ? `${window.location.origin}/p/${profile.handle}` : "";
+  const valid = /^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/.test(slug);
+  const run = async (fn, done) => {
+    setBusy(true);
+    setError("");
+    setMsg("");
+    try {
+      await fn();
+      setMsg(done);
+    } catch (e) {
+      setError(e.message || "Não foi possível guardar.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="public-link">
+      <strong>Link público</strong>
+      <p className="subtle">
+        Um endereço para partilhares o teu perfil (por exemplo no WhatsApp ou
+        no Instagram). Abre mesmo sem conta e mostra só o que já é público:
+        nunca o teu email nem o telefone.
+      </p>
+      {profile.public !== true ? (
+        <p className="notice">Torna o perfil visível (abaixo) para poderes criar o link.</p>
+      ) : url ? (
+        <div className="stack">
+          <a href={url} target="_blank" rel="noreferrer" className="public-link-url">
+            {url}
+          </a>
+          <div className="actions">
+            <button
+              type="button"
+              className="btn secondary"
+              onClick={() =>
+                navigator.clipboard?.writeText(url).then(
+                  () => setMsg("Link copiado."),
+                  () => setMsg(url),
+                )
+              }
+            >
+              Copiar link
+            </button>
+            <a className="btn secondary" href={url} target="_blank" rel="noreferrer">
+              Ver e guardar CV em PDF
+            </a>
+            <button
+              type="button"
+              className="quiet"
+              disabled={busy}
+              onClick={() => run(() => releaseHandle(user.uid), "Link desligado.")}
+            >
+              Desligar link
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="stack">
+          <Field label="Nome do link">
+            <input
+              value={slug}
+              maxLength={40}
+              onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+            />
+          </Field>
+          <p className="subtle">
+            {window.location.origin}/p/{slug || "…"}
+          </p>
+          <div className="actions">
+            <button
+              type="button"
+              className="btn gold"
+              disabled={busy || !valid}
+              onClick={() => run(() => claimHandle(user.uid, slug), "Link criado.")}
+            >
+              {busy ? "A criar…" : "Criar o meu link"}
+            </button>
+          </div>
+          {!valid && <p className="subtle">Usa 3 a 40 letras minúsculas, números ou hífenes.</p>}
+        </div>
+      )}
+      {msg && <p className="success-box" role="status">{msg}</p>}
+      <ErrorBox>{error}</ErrorBox>
     </div>
   );
 }
@@ -1197,6 +1329,7 @@ export function EditProfile() {
         )}
         <div hidden={section !== "visibility"} className="panel">
           <h3 className="section-title">Visibilidade</h3>
+          <PublicLink />
           <p>
             <Link to="/app/conta">
               Segurança da conta e confirmação de email

@@ -10,6 +10,11 @@ service cloud.firestore {
     function participant(a) { return signed() && (a.workerId == request.auth.uid || a.companyId == request.auth.uid); }
     function job(id) { return get(/databases/$(database)/documents/jobs/$(id)).data; }
     function engagement(id) { return get(/databases/$(database)/documents/engagements/$(id)).data; }
+    // Perfil com link público ativo (/p/nome): lê-se sem conta. Só o que já é público.
+    function shared(uid) {
+      let p = get(/databases/$(database)/documents/publicProfiles/$(uid)).data;
+      return p.public == true && p.get('handle', '') != '';
+    }
     function profileEdit() {
       let d = request.resource.data;
       return d.name is string && d.name.size() > 0 && d.name.size() <= 120 &&
@@ -29,8 +34,10 @@ service cloud.firestore {
         request.resource.data.kind in ['worker','company'] && request.resource.data.gdprConsent == true &&
         request.resource.data.email == request.auth.token.email && profileEdit();
       allow update: if self(uid) && profileEdit() && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-        'name','headline','bio','district','phone','languages','categories','prefs','availability','public','experience','companyLegalName','website','updatedAt','importExperience','emailNotifications','theme','unavailable'
+        'name','headline','bio','district','phone','languages','categories','prefs','availability','public','experience','companyLegalName','website','updatedAt','importExperience','emailNotifications','theme','unavailable','handle'
       ]) && request.resource.data.get('importExperience',false) is bool &&
+        (request.resource.data.get('handle','') == '' ||
+          getAfter(/databases/$(database)/documents/handles/$(request.resource.data.handle)).data.uid == uid) &&
         request.resource.data.get('theme','auto') in ['auto','dark','light'] &&
         request.resource.data.get('emailNotifications',true) is bool &&
         (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['public']) ||
@@ -63,7 +70,7 @@ service cloud.firestore {
       // Trabalhos anteriores declarados pelo trabalhador. 'verified' e 'rejected' só o servidor os põe.
       // Sem update: um pedido enviado não muda enquanto a empresa o avalia; corrigir é apagar e declarar de novo.
       match /historyClaims/{claimId} {
-        allow read: if self(uid) || (signed() && get(/databases/$(database)/documents/publicProfiles/$(uid)).data.public == true);
+        allow read: if self(uid) || (signed() && get(/databases/$(database)/documents/publicProfiles/$(uid)).data.public == true) || shared(uid);
         allow create: if self(uid) && kind('worker') &&
           request.resource.data.keys().hasOnly(['title','companyName','companyId','date','hours','description','status','createdAt']) &&
           request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 120 &&
@@ -83,8 +90,10 @@ service cloud.firestore {
     }
     match /publicProfiles/{uid} {
       allow read: if self(uid) || (signed() && resource.data.public == true);
+      allow get: if resource.data.public == true && resource.data.get('handle', '') != '';
       allow create, update: if self(uid) && profileEdit() &&
-        request.resource.data.keys().hasOnly(['kind','name','public','headline','bio','district','languages','companyLegalName','website','availability','categories','prefs','experience','unavailable']) &&
+        request.resource.data.keys().hasOnly(['kind','name','public','headline','bio','district','languages','companyLegalName','website','availability','categories','prefs','experience','unavailable','handle']) &&
+        request.resource.data.get('handle','') == getAfter(/databases/$(database)/documents/profiles/$(uid)).data.get('handle','') &&
         request.resource.data.kind == getAfter(/databases/$(database)/documents/profiles/$(uid)).data.kind &&
         request.resource.data.public == getAfter(/databases/$(database)/documents/profiles/$(uid)).data.get('public',false);
     }
@@ -92,7 +101,17 @@ service cloud.firestore {
     // A reputação nova é criada por avaliações de contratações concluídas.
     match /validations/{id} { allow read: if self(resource.data.workerId) || (signed() && get(/databases/$(database)/documents/publicProfiles/$(resource.data.workerId)).data.public == true); }
     // Contadores de fiabilidade (faltas, atrasos, cancelamentos, concluídos). Só o servidor escreve.
-    match /reputations/{uid} { allow read: if self(uid) || (signed() && get(/databases/$(database)/documents/publicProfiles/$(uid)).data.public == true); }
+    match /reputations/{uid} { allow read: if self(uid) || (signed() && get(/databases/$(database)/documents/publicProfiles/$(uid)).data.public == true) || shared(uid); }
+    // Nomes dos links públicos: um por pessoa, escolhido pela própria.
+    match /handles/{slug} {
+      allow get: if true;
+      allow create: if signed() && slug.matches('^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$') &&
+        request.resource.data.keys().hasOnly(['uid','createdAt']) &&
+        request.resource.data.uid == request.auth.uid && request.resource.data.createdAt == request.time &&
+        getAfter(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.get('handle','') == slug;
+      allow delete: if signed() && resource.data.uid == request.auth.uid &&
+        getAfter(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.get('handle','') != slug;
+    }
     // Passagem de staff para a app própria da empresa: só a empresa e a pessoa leem. Só o servidor escreve.
     match /handovers/{id} {
       allow read: if signed() && (resource.data.companyId == request.auth.uid || resource.data.workerId == request.auth.uid);
@@ -110,9 +129,9 @@ service cloud.firestore {
       allow read: if signed() && (resource.data.workerId == request.auth.uid || resource.data.companyId == request.auth.uid);
     }
     // Validação das empresas pela administração. Só o servidor escreve.
-    match /companyStatus/{uid} { allow read: if signed(); }
+    match /companyStatus/{uid} { allow read: if signed() || shared(uid); }
     // Histórico de trabalhos verificados. Escrito só pelo servidor ao concluir ou ao aprovar.
-    match /workHistory/{id} { allow read: if self(resource.data.workerId) || (signed() && get(/databases/$(database)/documents/publicProfiles/$(resource.data.workerId)).data.public == true); }
+    match /workHistory/{id} { allow read: if self(resource.data.workerId) || (signed() && get(/databases/$(database)/documents/publicProfiles/$(resource.data.workerId)).data.public == true) || shared(resource.data.workerId); }
     match /channels/{channelId} {
       allow read: if signed();
       // Canais de tema: nomes fixos, criados uma vez e nunca renomeados.
@@ -145,6 +164,8 @@ service cloud.firestore {
       // Nas listas, comparar o campo diretamente: com get(campo, defeito) a regra não filtra.
       // Por isso todas as ofertas têm 'visibility' (publicação e scripts/migrate-visibility.mjs).
       allow list: if signed() && (resource.data.visibility == 'public' || resource.data.companyId == request.auth.uid);
+      // Página pública da empresa: as ofertas abertas e públicas dela, sem conta.
+      allow list: if resource.data.visibility == 'public' && resource.data.status == 'open' && shared(resource.data.companyId);
       allow create: if false; // Publicação validada pela função contracting.
       // Condições da oferta ficam estáveis depois de publicadas.
       allow update: if signed() && resource.data.companyId == request.auth.uid && resource.data.status == 'open' &&
@@ -188,7 +209,10 @@ service cloud.firestore {
     }
     match /reviews/{id} {
       allow read: if signed();
-      allow create: if signed() && request.resource.data.keys().hasOnly(['engagementId','authorId','subjectId','rating','text','createdAt']) &&
+      allow list: if shared(resource.data.subjectId);
+      allow create: if signed() && request.resource.data.keys().hasOnly(['engagementId','authorId','subjectId','rating','text','createdAt','authorName','jobTitle']) &&
+        request.resource.data.get('authorName', profile().name) == profile().name &&
+        request.resource.data.get('jobTitle', engagement(request.resource.data.engagementId).title) == engagement(request.resource.data.engagementId).title &&
         participant(engagement(request.resource.data.engagementId)) && engagement(request.resource.data.engagementId).status == 'completed' &&
         request.resource.data.authorId == request.auth.uid && id == request.resource.data.engagementId + '_' + request.auth.uid &&
         request.resource.data.subjectId == (request.auth.uid == engagement(request.resource.data.engagementId).companyId ?

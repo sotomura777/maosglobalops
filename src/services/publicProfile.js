@@ -13,6 +13,7 @@ export function publicProfile(data) {
     "companyLegalName",
     "website",
     "availability",
+    "handle",
   ]) {
     if (typeof data[key] === "string") result[key] = data[key];
   }

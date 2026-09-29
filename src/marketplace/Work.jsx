@@ -384,7 +384,7 @@ function EngagementView() {
   const { id } = useParams();
   const [search] = useSearchParams();
   const chatView = search.get("view") === "chat";
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { applications, loading } = useMarket();
   const a = applications.find((x) => x.id === id);
   const [job, setJob] = useState(null);
@@ -863,7 +863,7 @@ function EngagementView() {
                 setBusy(true);
                 setError("");
                 try {
-                  await review(a, user.uid, rating, reviewText);
+                  await review(a, user.uid, rating, reviewText, profile?.name);
                   setReviewed(true);
                 } catch {
                   setError(

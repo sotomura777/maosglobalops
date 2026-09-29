@@ -262,3 +262,16 @@ export const upcomingDates = (dates, todayStr, max = 120) =>
 export const isFreeOn = (p, date) =>
   p.availability !== "indisponivel" &&
   !(date && (p.unavailable || []).includes(date));
+// Nome do link público a partir do nome: "Ana Silva" → "ana-silva" (3 a 40 caracteres).
+export function slugify(name) {
+  let s = String(name || "")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40)
+    .replace(/-+$/, "");
+  if (s.length < 3) s = `${s || "perfil"}-gop`.slice(0, 40);
+  return s;
+}

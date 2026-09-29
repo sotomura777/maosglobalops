@@ -14,6 +14,7 @@ import {
   calendarMonths,
   upcomingDates,
   isFreeOn,
+  slugify,
 } from "../src/marketplace/model.js";
 test("worker and company must each confirm the agreed stages", () => {
   assert.deepEqual(
@@ -193,4 +194,13 @@ test("someone is free on a day unless they marked it or are not taking work", ()
   assert.equal(isFreeOn({ availability: "disponivel", unavailable: ["2026-10-02"] }, "2026-10-03"), true);
   assert.equal(isFreeOn({ availability: "indisponivel" }, "2026-10-03"), false);
   assert.equal(isFreeOn({}, ""), true);
+});
+
+test("link names come from the person's name, without accents or spaces", () => {
+  assert.equal(slugify("Ana Silva"), "ana-silva");
+  assert.equal(slugify("  João  Ção-Ãnes!! "), "joao-cao-anes");
+  assert.equal(slugify("Aurora Eventos, Lda."), "aurora-eventos-lda");
+  // Rules require 3-40 characters, starting and ending with a letter or digit.
+  assert.match(slugify("Ab"), /^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/);
+  assert.ok(slugify("x".repeat(80)).length <= 40);
 });

@@ -69,6 +69,8 @@ Ver [arquitetura-empresas.md](arquitetura-empresas.md), secção "Contrato".
 
 ## 6. Produto — próximos passos possíveis
 
+- [x] Link público do perfil (`/p/nome`), currículo em PDF, recomendações com o nome da empresa e página pública da empresa com as ofertas abertas.
+
 - [x] Disputas de presenças: contestação pelo profissional (7 dias), decisão da administração.
 - [x] Métricas de percurso no admin (registo → candidatura → contratação).
 - [ ] Contas de empresa com vários membros e papéis.

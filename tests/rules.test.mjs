@@ -235,11 +235,22 @@ test("reviews are once per participant, on completed jobs only", async () => {
       rating: 6,
     }),
   );
+  // The company's name and the job title travel with the recommendation, and must be true.
+  await assertFails(
+    setDoc(doc(company, "reviews", "job_worker_company"), {
+      ...review,
+      authorId: "company",
+      subjectId: "worker",
+      authorName: "Outra Empresa",
+    }),
+  );
   await assertSucceeds(
     setDoc(doc(company, "reviews", "job_worker_company"), {
       ...review,
       authorId: "company",
       subjectId: "worker",
+      authorName: "Empresa",
+      jobTitle: "Mesa",
     }),
   );
   await env.withSecurityRulesDisabled((ctx) =>
@@ -482,6 +493,66 @@ test("the ranking is readable by signed-in users only and written by the server"
   await assertSucceeds(getDoc(doc(worker, "rankings", "current")));
   await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), "rankings", "current")));
   await assertFails(setDoc(doc(worker, "rankings", "current"), { entries: [{ uid: "worker", score: 9999 }] }));
+});
+test("public links: one name per person, readable without login only while shared", async () => {
+  const anon = env.unauthenticatedContext().firestore();
+  const current = {};
+  const before = {};
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    for (const uid of ["worker", "company"]) {
+      current[uid] = (await getDoc(doc(ctx.firestore(), "profiles", uid))).data();
+      before[uid] = (await getDoc(doc(ctx.firestore(), "publicProfiles", uid))).data();
+    }
+  });
+  // Creating a link = the name, the profile field and the public projection, together.
+  const claim = (db, uid, slug) => {
+    const b = writeBatch(db);
+    b.set(doc(db, "handles", slug), { uid, createdAt: serverTimestamp() });
+    b.update(doc(db, "profiles", uid), { public: true, handle: slug });
+    b.set(doc(db, "publicProfiles", uid), { kind: current[uid].kind, name: current[uid].name, public: true, handle: slug });
+    return b.commit();
+  };
+  await assertFails(claim(worker, "worker", "Ana Silva"));
+  await assertSucceeds(claim(worker, "worker", "ana-teste"));
+  // Nobody else can take or point that name elsewhere.
+  await assertFails(claim(company, "company", "ana-teste"));
+  await assertFails(setDoc(doc(stranger, "handles", "outro-nome"), { uid: "worker", createdAt: serverTimestamp() }));
+  await assertFails(updateDoc(doc(worker, "profiles", "worker"), { handle: "nao-existe" }));
+  await assertSucceeds(claim(company, "company", "empresa-teste"));
+  // Without an account: the link, the public profile, the CV and the reviews.
+  await assertSucceeds(getDoc(doc(anon, "handles", "ana-teste")));
+  await assertSucceeds(getDoc(doc(anon, "publicProfiles", "worker")));
+  await assertSucceeds(getDoc(doc(anon, "reputations", "worker")));
+  await assertSucceeds(getDocs(query(collection(anon, "workHistory"), where("workerId", "==", "worker"))));
+  await assertSucceeds(getDocs(query(collection(anon, "reviews"), where("subjectId", "==", "worker"))));
+  await assertSucceeds(getDocs(collection(anon, "profiles", "worker", "historyClaims")));
+  await assertSucceeds(
+    getDocs(query(collection(anon, "jobs"), where("companyId", "==", "company"), where("visibility", "==", "public"), where("status", "==", "open"))),
+  );
+  // But never lists of everyone, private data, or profiles without a link.
+  await assertFails(getDocs(collection(anon, "publicProfiles")));
+  await assertFails(getDocs(collection(anon, "reviews")));
+  await assertFails(getDoc(doc(anon, "profiles", "worker")));
+  await assertFails(getDoc(doc(anon, "publicProfiles", "stranger")));
+  await assertFails(getDocs(query(collection(anon, "jobs"), where("visibility", "==", "public"), where("status", "==", "open"))));
+  // Switching the link off closes it again.
+  const off = writeBatch(worker);
+  off.update(doc(worker, "profiles", "worker"), { handle: "" });
+  off.set(doc(worker, "publicProfiles", "worker"), { kind: "worker", name: current.worker.name, public: true, handle: "" });
+  off.delete(doc(worker, "handles", "ana-teste"));
+  await assertSucceeds(off.commit());
+  await assertFails(getDoc(doc(anon, "publicProfiles", "worker")));
+  await assertFails(getDocs(query(collection(anon, "workHistory"), where("workerId", "==", "worker"))));
+  // Leave both accounts exactly as the other tests expect them.
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    for (const uid of ["worker", "company"]) {
+      await setDoc(doc(db, "profiles", uid), current[uid]);
+      if (before[uid]) await setDoc(doc(db, "publicProfiles", uid), before[uid]);
+      else await deleteDoc(doc(db, "publicProfiles", uid));
+    }
+    await deleteDoc(doc(db, "handles", "empresa-teste"));
+  });
 });
 test("handover requests are visible only to the company and the person", async () => {
   await seed("handovers", "company_worker", {

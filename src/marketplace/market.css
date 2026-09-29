@@ -1525,3 +1525,59 @@ a.setup-strip:focus-visible strong {
   font-size: 11px;
   color: var(--text-3);
 }
+.print-only {
+  display: none;
+}
+/* Currículo em PDF: a página pública imprime limpa, a preto e branco, sem botões. */
+@media print {
+  :root,
+  :root[data-theme="light"],
+  :root[data-theme="dark"] {
+    --bg: #ffffff;
+    --card: #ffffff;
+    --card-2: #ffffff;
+    --inset: #f4f4f4;
+    --border: #d9d9d9;
+    --border-mid: #cccccc;
+    --text: #111111;
+    --text-2: #222222;
+    --text-3: #444444;
+    --text-4: #555555;
+    --text-5: #666666;
+    --gold: #111111;
+  }
+  body {
+    background: #fff;
+  }
+  .no-print,
+  .report-slot,
+  .market-tabs,
+  button {
+    display: none !important;
+  }
+  .print-only {
+    display: block;
+    margin-top: 16px;
+  }
+  .public-job-main {
+    padding: 0;
+    max-width: none;
+  }
+  .panel {
+    break-inside: avoid;
+    box-shadow: none;
+  }
+}
+.public-link {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  margin-bottom: 18px;
+  border: 1px solid var(--border-mid);
+  border-radius: 14px;
+}
+.public-link-url {
+  font-weight: 600;
+  color: var(--gold);
+  overflow-wrap: anywhere;
+}
